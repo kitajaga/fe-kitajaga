@@ -39,7 +39,7 @@
   overflow: hidden;
 }
 
-/* Slide background gradient */
+/* Slide background gradient — navy blue tones */
 .slide::before {
   content: '';
   position: absolute;
@@ -53,15 +53,15 @@
 }
 
 .slide:nth-child(1)::before {
-  background: linear-gradient(160deg, #f0fdfa 0%, #ccfbf1 40%, #99f6e4 100%);
+  background: linear-gradient(160deg, #e8edf6 0%, #d0daf0 40%, #b8c7e8 100%);
 }
 
 .slide:nth-child(2)::before {
-  background: linear-gradient(160deg, #ecfdf5 0%, #d1fae5 40%, #a7f3d0 100%);
+  background: linear-gradient(160deg, #edf0f8 0%, #dce3f4 40%, #c5d0ed 100%);
 }
 
 .slide:nth-child(3)::before {
-  background: linear-gradient(160deg, #f0fdf4 0%, #dcfce7 40%, #bbf7d0 100%);
+  background: linear-gradient(160deg, #eef2f7 0%, #e0e8f5 40%, #cdd8f0 100%);
 }
 
 /* Illustration */
@@ -145,7 +145,7 @@
 .dotActive {
   width: 28px;
   background: var(--color-primary);
-  box-shadow: 0 0 8px rgba(13, 148, 136, 0.35);
+  box-shadow: 0 0 8px rgba(16, 54, 125, 0.35);
 }
 
 /* Button area */
@@ -196,7 +196,7 @@
   font-size: var(--font-size-base);
   font-weight: 600;
   border-radius: var(--radius-full);
-  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35);
+  box-shadow: 0 4px 14px rgba(16, 54, 125, 0.35);
   transition: all var(--transition-base);
   min-width: 160px;
   position: relative;
@@ -214,7 +214,7 @@
 
 .nextButton:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(13, 148, 136, 0.4);
+  box-shadow: 0 6px 20px rgba(16, 54, 125, 0.4);
 }
 
 .nextButton:hover::before {
@@ -223,7 +223,7 @@
 
 .nextButton:active {
   transform: translateY(0) scale(0.98);
-  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.3);
+  box-shadow: 0 2px 8px rgba(16, 54, 125, 0.3);
 }
 
 /* CTA variant (last slide) */
