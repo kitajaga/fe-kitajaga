@@ -122,3 +122,52 @@ export async function login(payload: LoginPayload): Promise<AuthData> {
     body: JSON.stringify(payload),
   });
 }
+export async function getBookingDetail(id: string) {
+  const token = localStorage.getItem("token");
+  if (!token) throw new Error("No token found");
+  
+  const res = await fetch(`${API_URL}/bookings/${id}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  
+  const json = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json.message || "Failed to fetch booking detail");
+  }
+  return json.data;
+}
+
+export async function updateBookingProgress(id: string, progressData: any) {
+  const token = localStorage.getItem("token");
+  if (!token) throw new Error("No token found");
+  
+  const res = await fetch(`${API_URL}/bookings/${id}/progress`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(progressData)
+  });
+  
+  const json = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json.message || "Failed to update progress");
+  }
+  return json.data;
+}
+
+export async function getBookingProgress(id: string) {
+  const token = localStorage.getItem("token");
+  if (!token) throw new Error("No token found");
+  
+  const res = await fetch(`${API_URL}/bookings/${id}/progress`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  
+  const json = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json.message || "Failed to fetch progress");
+  }
+  return json.data;
+}
