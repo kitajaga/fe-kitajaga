@@ -1,29 +1,44 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faHouse, faCalendarDays, faComments, faUserCircle, faChevronRight, faCircle } from "@fortawesome/free-solid-svg-icons";
 import styles from "./chat-list.module.css";
-
-import { MOCK_BOOKINGS, MOCK_CHAT_MESSAGES, getPatientById } from "@/lib/mockData";
-
-// Calculate recent chats based on bookings and messages
-const MOCK_CHATS = MOCK_BOOKINGS.filter(b => b.caregiverId === "cg-002" || b.caregiverId === "cg-001").map(booking => {
-  const patient = getPatientById(booking.patientId);
-  const messages = MOCK_CHAT_MESSAGES.filter(m => m.bookingId === booking.id);
-  const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
-  
-  return {
-    id: booking.id,
-    patientName: patient?.name || "Pasien",
-    lastMessage: lastMsg?.message || "Belum ada pesan",
-    time: lastMsg ? new Date(lastMsg.sentAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "",
-    unread: 0,
-  };
-});
+import { fetchBookings } from "@/lib/api";
 
 export default function ChatListPage() {
   const router = useRouter();
+  const [chats, setChats] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadChats = async () => {
+      try {
+        const bookings = await fetchBookings();
+        // Filter active bookings that can be chatted with
+        const activeBookings = bookings.filter((b: any) => 
+          b.status !== "pending" && b.status !== "cancelled" && b.status !== "completed" && b.status !== "reported"
+        );
+        
+        const formattedChats = activeBookings.map((b: any) => ({
+          id: b.id,
+          patientName: b.patient?.name || "Pasien",
+          lastMessage: "Mulai percakapan...",
+          time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+          unread: 0
+        }));
+        
+        setChats(formattedChats);
+      } catch (err) {
+        console.error("Failed to load chats", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadChats();
+  }, []);
 
   return (
     <div className={styles.pageWrapper}>
@@ -34,7 +49,9 @@ export default function ChatListPage() {
 
       {/* Main Content */}
       <main className={styles.content}>
-        {MOCK_CHATS.map((chat) => (
+        {loading ? (
+          <div style={{ padding: "20px", textAlign: "center" }}>Memuat daftar chat...</div>
+        ) : chats.map((chat) => (
           <div 
             key={chat.id} 
             className={styles.chatCard}
@@ -65,7 +82,7 @@ export default function ChatListPage() {
           </div>
         ))}
         
-        {MOCK_CHATS.length === 0 && (
+        {!loading && chats.length === 0 && (
           <div className={styles.emptyState}>
             <p>Belum ada pesan.</p>
           </div>

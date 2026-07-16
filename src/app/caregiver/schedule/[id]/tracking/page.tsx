@@ -119,7 +119,7 @@ export default function TrackingPage() {
           <FontAwesomeIcon icon={faUser} />
         </div>
         <h2 className={styles.patientName}>{booking?.patient?.name || "Pasien"}</h2>
-        <p className={styles.facilityText}>{booking?.facility?.name || "Fasilitas"}</p>
+        <p className={styles.facilityText}>{booking?.facility?.name || booking?.facilityName || "Fasilitas"}</p>
       </div>
 
       <div className={styles.content}>

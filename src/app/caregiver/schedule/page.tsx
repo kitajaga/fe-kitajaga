@@ -1,33 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft, faCircleCheck, faClock, faHouse, faCalendarDays, faComments, faUserCircle } from "@fortawesome/free-solid-svg-icons";
 import styles from "./schedule.module.css";
 
-const MOCK_SCHEDULES = [
-  {
-    id: "booking-uuid-1",
-    name: "Budi Santoso",
-    facility: "RSCM Jakarta",
-    time: "06.00 - 12.00",
-    status: "Sedang berlangsung",
-    type: "ongoing"
-  },
-  {
-    id: "booking-uuid-2",
-    name: "Hendri Pratama",
-    facility: "RSCM Jakarta",
-    time: "13.00 - 19.00",
-    status: "Upcoming",
-    type: "upcoming"
-  }
-];
+import { fetchBookings } from "@/lib/api";
 
 export default function CaregiverSchedulePage() {
   const router = useRouter();
   const [selectedDay, setSelectedDay] = useState(5);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadBookings = async () => {
+      try {
+        const data = await fetchBookings();
+        setBookings(data || []);
+      } catch (err) {
+        console.error("Failed to fetch bookings", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadBookings();
+  }, []);
 
   return (
     <div className={styles.pageWrapper}>
@@ -65,22 +64,27 @@ export default function CaregiverSchedulePage() {
         <div className={styles.scheduleList}>
           <div className={styles.timelineLine} />
           
-          {MOCK_SCHEDULES.map((item) => (
-            <div key={item.id} className={styles.scheduleItemWrapper} onClick={() => router.push(`/caregiver/schedule/${item.id}`)}>
-              <div className={styles.timelineDot} />
-              <div className={`${styles.scheduleCard} ${item.type === "ongoing" ? styles.scheduleCardOngoing : ""}`}>
-                <div className={styles.cardTop}>
-                  <span className={styles.patientName}>{item.name}</span>
-                  <span className={styles.timeText}>{item.time}</span>
-                </div>
-                <div className={styles.facilityName}>{item.facility}</div>
-                <div className={styles.statusText}>
-                  <FontAwesomeIcon icon={item.type === "ongoing" ? faCircleCheck : faClock} className={styles.statusIcon} />
-                  {item.status}
+          {loading ? (
+            <div style={{ padding: "20px", textAlign: "center" }}>Memuat jadwal...</div>
+          ) : bookings.map((item) => {
+            const isOngoing = item.status === "in_progress" || item.status === "matched" || item.status.includes("heading") || item.status.includes("patient") || item.status.includes("registration") || item.status.includes("consultation") || item.status.includes("queue");
+            return (
+              <div key={item.id} className={styles.scheduleItemWrapper} onClick={() => router.push(`/caregiver/schedule/${item.id}`)}>
+                <div className={styles.timelineDot} />
+                <div className={`${styles.scheduleCard} ${isOngoing ? styles.scheduleCardOngoing : ""}`}>
+                  <div className={styles.cardTop}>
+                    <span className={styles.patientName}>{item.patient?.name || "Pasien"}</span>
+                    <span className={styles.timeText}>{new Date(item.scheduledAt || Date.now()).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}</span>
+                  </div>
+                  <div className={styles.facilityName}>{item.facility?.name || item.facilityName || "Fasilitas"}</div>
+                  <div className={styles.statusText}>
+                    <FontAwesomeIcon icon={isOngoing ? faCircleCheck : faClock} className={styles.statusIcon} />
+                    {item.status.replace(/_/g, " ")}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           
           <div className={styles.scheduleItemWrapper}>
             <div className={styles.timelineDotEmpty} />
