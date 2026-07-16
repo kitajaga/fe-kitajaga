@@ -79,9 +79,14 @@ export default function TrackingPage() {
       return;
     }
     const currentStatusIndex = PROGRESS_STEPS.findIndex(s => s.id === history[history.length - 1].status);
-    if (currentStatusIndex < PROGRESS_STEPS.length - 1) {
-      handleUpdateStatus(PROGRESS_STEPS[currentStatusIndex + 1].id);
+    
+    // If it's already completed, go to report page
+    if (currentStatusIndex >= PROGRESS_STEPS.length - 1) {
+      router.push(`/caregiver/schedule/${bookingId}/report`);
+      return;
     }
+    
+    handleUpdateStatus(PROGRESS_STEPS[currentStatusIndex + 1].id);
   };
 
   if (loading) {
@@ -143,9 +148,9 @@ export default function TrackingPage() {
         <button 
           className={styles.nextButton} 
           onClick={handleNextStep} 
-          disabled={updating || isCompleted}
+          disabled={updating}
         >
-          {updating ? "Updating..." : isCompleted ? "Selesai" : "Update Status"}
+          {updating ? "Updating..." : isCompleted ? "Beri Laporan Selesai" : "Update Status"}
           {!updating && !isCompleted && <FontAwesomeIcon icon={faLocationArrow} />}
         </button>
       </footer>
