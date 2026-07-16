@@ -1,0 +1,18 @@
+{
+  "name": "Kitajaga — Caregiver Marketplace",
+  "short_name": "Kitajaga",
+  "description": "Marketplace caregiver berbasis lokasi untuk pendampingan lansia",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0D9488",
+  "theme_color": "#0D9488",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/kitajaga-logo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

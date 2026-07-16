@@ -1,0 +1,187 @@
+.splashContainer {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--gradient-brand);
+  background-size: 200% 200%;
+  animation: gradientShift 6s ease infinite;
+  overflow: hidden;
+  z-index: 100;
+}
+
+/* Decorative floating orbs */
+.splashContainer::before,
+.splashContainer::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+.splashContainer::before {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+  top: -80px;
+  right: -60px;
+  animation: float 8s ease-in-out infinite;
+}
+
+.splashContainer::after {
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
+  bottom: -40px;
+  left: -50px;
+  animation: float 6s ease-in-out infinite reverse;
+}
+
+/* Logo container */
+.logoWrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-6);
+  z-index: 1;
+  animation: scaleIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.logo {
+  width: 120px;
+  height: 120px;
+  animation: breathe 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px rgba(255,255,255,0.25));
+}
+
+/* Brand name */
+.brandName {
+  font-size: var(--font-size-4xl);
+  font-weight: 800;
+  color: var(--color-white);
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  opacity: 0;
+  animation: fadeInUp 0.6s ease forwards 0.4s;
+}
+
+/* Tagline */
+.tagline {
+  font-size: var(--font-size-base);
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.85);
+  text-align: center;
+  max-width: 260px;
+  line-height: 1.5;
+  opacity: 0;
+  animation: fadeInUp 0.6s ease forwards 0.7s;
+}
+
+/* Loading section */
+.loadingSection {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  z-index: 1;
+  opacity: 0;
+  animation: fadeIn 0.5s ease forwards 1.2s;
+}
+
+/* Shimmer loading bar */
+.loadingBar {
+  width: 160px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  position: relative;
+}
+
+.loadingBarInner {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.6) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-full);
+}
+
+.loadingProgress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: var(--radius-full);
+  animation: progressBar 2.8s ease-in-out forwards;
+}
+
+.loadingText {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+/* Decorative dots */
+.decorDots {
+  position: absolute;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: var(--space-2);
+  z-index: 1;
+  opacity: 0;
+  animation: fadeIn 0.5s ease forwards 0.3s;
+}
+
+.decorDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.decorDot:nth-child(1) {
+  animation: dotPulse 1.5s ease-in-out infinite;
+}
+
+.decorDot:nth-child(2) {
+  animation: dotPulse 1.5s ease-in-out infinite 0.3s;
+}
+
+.decorDot:nth-child(3) {
+  animation: dotPulse 1.5s ease-in-out infinite 0.6s;
+}
+
+/* Fade-out transition */
+.fadeOut {
+  animation: fadeOutSplash 0.5s ease forwards !important;
+}
+
+@keyframes fadeOutSplash {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.05);
+  }
+}
