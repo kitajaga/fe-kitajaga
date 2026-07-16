@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { io, Socket } from "socket.io-client";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft, faUserCircle, faPaperPlane } from "@fortawesome/free-solid-svg-icons";
+import { getBookingDetail } from "@/lib/api";
 import styles from "./chat.module.css";
 
 interface Message {
@@ -23,14 +24,20 @@ export default function ChatPage() {
   
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState("");
+  const [booking, setBooking] = useState<any>(null);
   const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Load booking detail
+    getBookingDetail(bookingId)
+      .then((data) => setBooking(data))
+      .catch((err) => console.error("Failed to fetch booking for chat:", err));
+
     // Connect to websocket
-    const token = localStorage.getItem("token") || "mock-token";
-    // Usually process.env.NEXT_PUBLIC_API_URL, but keeping it generic or using localhost
-    const socket = io("http://localhost:4000", {
+    const token = localStorage.getItem("token") || "";
+    const socketUrl = "https://be-kitajaga-production.up.railway.app";
+    const socket = io(socketUrl, {
       auth: { token },
       autoConnect: false // disable auto connect if backend is not ready
     });
@@ -142,7 +149,7 @@ export default function ChatPage() {
       {/* Chat Area */}
       <main className={styles.chatArea}>
         <div className={styles.contextBanner}>
-          Booking Budi Santoso • RSCM Jakarta
+          Booking {booking?.patient?.name || "Pasien"} • {booking?.facility?.name || booking?.facilityName || "Fasilitas"}
         </div>
         
         <div className={styles.dateDivider}>
