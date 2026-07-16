@@ -5,11 +5,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons/faArrowLeft";
 import { faUserInjured } from "@fortawesome/free-solid-svg-icons/faUserInjured";
-import { faBolt } from "@fortawesome/free-solid-svg-icons/faBolt";
-import { faCalendarDays } from "@fortawesome/free-solid-svg-icons/faCalendarDays";
 import { faHospital } from "@fortawesome/free-solid-svg-icons/faHospital";
 import { faCheck } from "@fortawesome/free-solid-svg-icons/faCheck";
-import { MOCK_PATIENTS } from "@/lib/mockData";
+import { faChevronRight } from "@fortawesome/free-solid-svg-icons/faChevronRight";
+import { faSpinner } from "@fortawesome/free-solid-svg-icons/faSpinner";
+import { useApi } from "@/hooks/useApi";
+import { fetchPatients, createBooking } from "@/lib/api";
 import styles from "../bookings.module.css";
 
 import { Suspense } from "react";
@@ -20,22 +21,22 @@ function NewBookingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedPatient = searchParams.get("patientId") || "";
-  const preselectedType = searchParams.get("type") as "immediate" | "scheduled" | null;
 
   const [step, setStep] = useState(preselectedPatient ? 2 : 1);
   const [patientId, setPatientId] = useState(preselectedPatient);
-  const [bookingType, setBookingType] = useState<"immediate" | "scheduled" | "">(preselectedType || "");
+  const [bookingType, setBookingType] = useState<"immediate" | "scheduled">("immediate");
   const [scheduledAt, setScheduledAt] = useState("");
   const [facilityName, setFacilityName] = useState("");
   const [facilityAddress, setFacilityAddress] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const selectedPatient = MOCK_PATIENTS.find((p) => p.id === patientId);
+  const { data: patients, loading: loadingPatients } = useApi(fetchPatients);
+  const selectedPatient = (patients || []).find((p) => p.id === patientId);
 
   const canNext = useCallback((): boolean => {
     switch (step) {
       case 1: return !!patientId;
-      case 2: return !!bookingType && (bookingType === "immediate" || !!scheduledAt);
+      case 2: return bookingType === "immediate" || (bookingType === "scheduled" && !!scheduledAt);
       case 3: return !!facilityName.trim() && !!facilityAddress.trim();
       case 4: return true;
       default: return false;
@@ -48,11 +49,29 @@ function NewBookingContent() {
     } else {
       // Submit — POST /bookings
       setIsLoading(true);
-      await new Promise((r) => setTimeout(r, 1500));
-      setIsLoading(false);
-      router.push("/dashboard");
+      try {
+        const payload: any = {
+          patientId,
+          bookingType,
+          facilityName,
+          facilityAddress
+        };
+        
+        if (bookingType === "scheduled") {
+          // Konversi ke format ISO jika diperlukan oleh backend
+          payload.scheduledAt = new Date(scheduledAt).toISOString();
+        }
+
+        await createBooking(payload);
+        router.push("/schedule");
+      } catch (error: any) {
+        console.error(error);
+        alert(error.message || "Gagal membuat pesanan.");
+      } finally {
+        setIsLoading(false);
+      }
     }
-  }, [step, router]);
+  }, [step, router, patientId, bookingType, scheduledAt, facilityName, facilityAddress]);
 
   const handlePrev = useCallback(() => {
     if (step > 1) setStep(step - 1);
@@ -89,25 +108,45 @@ function NewBookingContent() {
         <div className={styles.stepContent}>
           <h2 className={styles.stepTitle}>Pilih Pasien</h2>
           <p className={styles.stepSubtitle}>Siapa yang akan didampingi?</p>
-          <div className={styles.selectionList}>
-            {MOCK_PATIENTS.map((p) => (
-              <button
-                key={p.id}
-                className={`${styles.selectionCard} ${patientId === p.id ? styles.selectionCardActive : ""}`}
-                onClick={() => setPatientId(p.id)}
-                id={`select-patient-${p.id}`}
+          {loadingPatients ? (
+            <div style={{ display: "flex", justifyContent: "center", padding: "2rem" }}>
+              <FontAwesomeIcon icon={faSpinner} spin size="2x" />
+            </div>
+          ) : patients && patients.length > 0 ? (
+            <div className={styles.selectionList}>
+              {patients.map((p) => (
+                <button
+                  key={p.id}
+                  className={`${styles.selectionCard} ${patientId === p.id ? styles.selectionCardActive : ""}`}
+                  onClick={() => setPatientId(p.id)}
+                  id={`select-patient-${p.id}`}
+                >
+                  <div className={`${styles.selectionCardIcon} ${p.gender === "male" ? styles.iconBlue : styles.iconPink}`}>
+                    <FontAwesomeIcon icon={faUserInjured} />
+                  </div>
+                  <div className={styles.selectionCardText}>
+                    <span className={styles.selectionCardTitle}>{p.name}</span>
+                    <span className={styles.selectionCardSub}>{p.address}</span>
+                  </div>
+                  <div className={`${styles.selectionRadio} ${patientId === p.id ? styles.selectionRadioActive : ""}`} />
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className={styles.emptyState}>
+              <div className={styles.emptyIcon}>
+                <FontAwesomeIcon icon={faUserInjured} />
+              </div>
+              <span className={styles.emptyTitle}>Belum Ada Pasien</span>
+              <p className={styles.emptyText}>Silakan tambahkan data pasien terlebih dahulu untuk memesan caregiver.</p>
+              <button 
+                className={styles.addPatientButton} 
+                onClick={() => router.push("/patients/new")}
               >
-                <div className={`${styles.selectionCardIcon} ${p.gender === "male" ? styles.iconBlue : styles.iconPink}`}>
-                  <FontAwesomeIcon icon={faUserInjured} />
-                </div>
-                <div className={styles.selectionCardText}>
-                  <span className={styles.selectionCardTitle}>{p.name}</span>
-                  <span className={styles.selectionCardSub}>{p.address}</span>
-                </div>
-                <div className={`${styles.selectionRadio} ${patientId === p.id ? styles.selectionRadioActive : ""}`} />
+                Tambah Pasien
               </button>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -115,42 +154,45 @@ function NewBookingContent() {
       {step === 2 && (
         <div className={styles.stepContent}>
           <h2 className={styles.stepTitle}>Tipe Layanan</h2>
-          <p className={styles.stepSubtitle}>Pilih jenis layanan yang dibutuhkan</p>
+          <p className={styles.stepSubtitle}>Kapan Anda membutuhkan caregiver?</p>
+          
           <div className={styles.selectionList}>
             <button
               className={`${styles.selectionCard} ${bookingType === "immediate" ? styles.selectionCardActive : ""}`}
               onClick={() => setBookingType("immediate")}
-              id="select-type-immediate"
+              id="booking-type-immediate"
             >
-              <div className={`${styles.selectionCardIcon} ${styles.iconAmber}`}>
-                <FontAwesomeIcon icon={faBolt} />
+              <div className={`${styles.selectionCardIcon} ${styles.iconBlue}`}>
+                <FontAwesomeIcon icon={faHospital} />
               </div>
               <div className={styles.selectionCardText}>
-                <span className={styles.selectionCardTitle}>Sekarang</span>
-                <span className={styles.selectionCardSub}>Caregiver segera menuju lokasi pasien</span>
+                <span className={styles.selectionCardTitle}>Pesan Sekarang</span>
+                <span className={styles.selectionCardSub}>Caregiver akan dicarikan saat ini juga</span>
               </div>
               <div className={`${styles.selectionRadio} ${bookingType === "immediate" ? styles.selectionRadioActive : ""}`} />
             </button>
+
             <button
               className={`${styles.selectionCard} ${bookingType === "scheduled" ? styles.selectionCardActive : ""}`}
               onClick={() => setBookingType("scheduled")}
-              id="select-type-scheduled"
+              id="booking-type-scheduled"
             >
-              <div className={`${styles.selectionCardIcon} ${styles.iconGreen}`}>
-                <FontAwesomeIcon icon={faCalendarDays} />
+              <div className={`${styles.selectionCardIcon} ${styles.iconPink}`}>
+                <FontAwesomeIcon icon={faCheck} />
               </div>
               <div className={styles.selectionCardText}>
                 <span className={styles.selectionCardTitle}>Terjadwal</span>
-                <span className={styles.selectionCardSub}>Jadwalkan layanan di hari & jam tertentu</span>
+                <span className={styles.selectionCardSub}>Pilih waktu untuk jadwal mendatang</span>
               </div>
               <div className={`${styles.selectionRadio} ${bookingType === "scheduled" ? styles.selectionRadioActive : ""}`} />
             </button>
           </div>
+
           {bookingType === "scheduled" && (
-            <div className={styles.inputGroup}>
-              <label className={styles.inputLabel} htmlFor="schedule-datetime">Tanggal & Waktu</label>
+            <div className={styles.inputGroup} style={{ marginTop: "1rem" }}>
+              <label className={styles.inputLabel} htmlFor="schedule-time">Waktu Pendampingan</label>
               <input
-                id="schedule-datetime"
+                id="schedule-time"
                 type="datetime-local"
                 className={styles.input}
                 value={scheduledAt}
@@ -172,18 +214,17 @@ function NewBookingContent() {
               id="facility-name"
               type="text"
               className={styles.input}
-              placeholder="Contoh: RSCM Jakarta"
+              placeholder="Contoh: RSCM Kencana"
               value={facilityName}
               onChange={(e) => setFacilityName(e.target.value)}
             />
           </div>
           <div className={styles.inputGroup}>
-            <label className={styles.inputLabel} htmlFor="facility-address">Alamat Fasilitas</label>
-            <input
+            <label className={styles.inputLabel} htmlFor="facility-address">Alamat Lengkap</label>
+            <textarea
               id="facility-address"
-              type="text"
-              className={styles.input}
-              placeholder="Contoh: Jl. Diponegoro No.71, Jakarta"
+              className={styles.textarea}
+              placeholder="Jalan, RT/RW, Kecamatan, Kota..."
               value={facilityAddress}
               onChange={(e) => setFacilityAddress(e.target.value)}
             />
@@ -196,7 +237,7 @@ function NewBookingContent() {
         <div className={styles.stepContent}>
           <h2 className={styles.stepTitle}>Konfirmasi Pemesanan</h2>
           <p className={styles.stepSubtitle}>Pastikan semua data sudah benar</p>
-          <div className={styles.confirmCard}>
+          <div className={styles.confirmBox}>
             <div className={styles.confirmRow}>
               <span className={styles.confirmLabel}>Pasien</span>
               <span className={styles.confirmValue}>{selectedPatient?.name}</span>
@@ -204,55 +245,51 @@ function NewBookingContent() {
             <div className={styles.confirmDivider} />
             <div className={styles.confirmRow}>
               <span className={styles.confirmLabel}>Tipe Layanan</span>
-              <span className={styles.confirmValue}>{bookingType === "immediate" ? "Sekarang" : "Terjadwal"}</span>
+              <span className={styles.confirmValue}>
+                {bookingType === "immediate" ? "Pesan Sekarang" : "Terjadwal"}
+              </span>
             </div>
             {bookingType === "scheduled" && scheduledAt && (
               <>
                 <div className={styles.confirmDivider} />
                 <div className={styles.confirmRow}>
-                  <span className={styles.confirmLabel}>Jadwal</span>
-                  <span className={styles.confirmValue}>
-                    {new Date(scheduledAt).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                  </span>
+                  <span className={styles.confirmLabel}>Waktu</span>
+                  <span className={styles.confirmValue}>{new Date(scheduledAt).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}</span>
                 </div>
               </>
             )}
             <div className={styles.confirmDivider} />
             <div className={styles.confirmRow}>
               <span className={styles.confirmLabel}>Fasilitas</span>
-              <span className={styles.confirmValue}>{facilityName}</span>
+              <span className={styles.confirmValue}>{facilityName || "-"}</span>
             </div>
             <div className={styles.confirmDivider} />
             <div className={styles.confirmRow}>
-              <span className={styles.confirmLabel}>Alamat</span>
-              <span className={styles.confirmValue}>{facilityAddress}</span>
+              <span className={styles.confirmLabel}>Alamat Fasilitas</span>
+              <span className={styles.confirmValue}>{facilityAddress || "-"}</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Navigation Buttons ── */}
+      {/* ── Footer ── */}
       <div className={styles.stepNav}>
-        {step > 1 && (
-          <button className={styles.prevButton} onClick={handlePrev} id="booking-prev-btn">
-            Kembali
-          </button>
-        )}
         <button
           className={styles.nextButton}
           onClick={handleNext}
           disabled={!canNext() || isLoading}
-          id="booking-next-btn"
+          id="new-booking-next"
         >
           {isLoading ? (
             <><span className={styles.spinner} />Memproses...</>
           ) : step === TOTAL_STEPS ? (
-            <><FontAwesomeIcon icon={faCheck} /> Pesan Sekarang</>
+            <><FontAwesomeIcon icon={faCheck} /> Konfirmasi Pesanan</>
           ) : step === 3 ? (
-            <><FontAwesomeIcon icon={faHospital} /> Lanjut ke Konfirmasi</>
+            <>Lanjut ke Konfirmasi <FontAwesomeIcon icon={faChevronRight} /></>
           ) : (
-            "Lanjut"
+            <>Lanjut <FontAwesomeIcon icon={faChevronRight} /></>
           )}
+
         </button>
       </div>
     </>
@@ -261,8 +298,12 @@ function NewBookingContent() {
 
 export default function NewBookingPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <NewBookingContent />
-    </Suspense>
+    <div className={styles.pageWrapper}>
+      <div className={styles.mainContent}>
+        <Suspense fallback={<div>Memuat form pemesanan...</div>}>
+          <NewBookingContent />
+        </Suspense>
+      </div>
+    </div>
   );
 }

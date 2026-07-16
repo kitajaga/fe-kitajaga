@@ -52,6 +52,10 @@ export default function UserLoginPage() {
       setIsLoading(true);
       try {
         const data = await login({ email, password });
+        if (data.role !== "user") {
+          setApiError("Akun ini terdaftar sebagai Caregiver. Silakan login di halaman Caregiver.");
+          return;
+        }
         saveAuth(data);
         router.push("/dashboard");
       } catch (err) {
@@ -67,7 +71,7 @@ export default function UserLoginPage() {
     <main id="user-login" className={styles.authContainer}>
       <div className={styles.brandBar}>
         <div className={styles.brandBarOrbs} aria-hidden="true" />
-        <button className={styles.backButton} onClick={() => router.push("/onboarding")} aria-label="Kembali" id="user-login-back-btn">
+        <button className={styles.backButton} onClick={() => router.push("/role-pick")} aria-label="Kembali" id="user-login-back-btn">
           <FontAwesomeIcon icon={faArrowLeft} />
         </button>
         <Image src="/icons/kitajaga-logo.png" alt="Kitajaga" width={48} height={48} className={styles.brandLogo} priority />

@@ -3,96 +3,228 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowLeft, faCircleCheck, faClock, faHouse, faCalendarDays, faComments, faUserCircle } from "@fortawesome/free-solid-svg-icons";
+import {
+  faCircleCheck,
+  faClock,
+  faHouse,
+  faCalendarDays,
+  faComments,
+  faUserCircle,
+  faClockRotateLeft,
+  faLocationDot,
+  faSpinner,
+  faXmark,
+  faChevronRight,
+} from "@fortawesome/free-solid-svg-icons";
 import styles from "./schedule.module.css";
-
 import { fetchBookings } from "@/lib/api";
 
+// ── Types ──
+interface Booking {
+  id: string;
+  status: string;
+  bookingType: "immediate" | "scheduled";
+  scheduledAt: string | null;
+  patient?: { id: string; name: string };
+  facility?: { name: string; address: string };
+  facilityName?: string;
+  facilityAddress?: string;
+  createdAt: string;
+}
+
+// ── Helpers ──
+const STATUS_LABEL: Record<string, string> = {
+  pending_matching: "Mencari Caregiver",
+  matched: "Terjadwal",
+  paid: "Pembayaran Diterima",
+  scheduled: "Menunggu Jadwal",
+  in_progress: "Sedang Berjalan",
+  completed: "Selesai",
+  reported: "Laporan Terkirim",
+  rescheduling: "Dijadwalkan Ulang",
+  reschedule_failed: "Gagal Dijadwalkan Ulang",
+  payment_failed: "Pembayaran Gagal",
+};
+
+type FilterTab = "all" | "active" | "completed" | "other";
+
+const ACTIVE_STATUSES = ["matched", "paid", "scheduled", "in_progress"];
+const COMPLETED_STATUSES = ["completed", "reported"];
+
+function getFilteredBookings(bookings: Booking[], tab: FilterTab): Booking[] {
+  switch (tab) {
+    case "active":
+      return bookings.filter((b) => ACTIVE_STATUSES.includes(b.status));
+    case "completed":
+      return bookings.filter((b) => COMPLETED_STATUSES.includes(b.status));
+    case "other":
+      return bookings.filter(
+        (b) => !ACTIVE_STATUSES.includes(b.status) && !COMPLETED_STATUSES.includes(b.status)
+      );
+    default:
+      return bookings;
+  }
+}
+
+function getStatusIcon(status: string) {
+  if (ACTIVE_STATUSES.includes(status)) return faLocationDot;
+  if (COMPLETED_STATUSES.includes(status)) return faCircleCheck;
+  if (status === "pending_matching" || status === "rescheduling") return faSpinner;
+  if (status.includes("failed")) return faXmark;
+  return faClock;
+}
+
+function getStatusClass(status: string, styles: Record<string, string>): string {
+  if (ACTIVE_STATUSES.includes(status)) return styles.statusActive;
+  if (COMPLETED_STATUSES.includes(status)) return styles.statusCompleted;
+  if (status.includes("failed")) return styles.statusFailed;
+  return styles.statusPending;
+}
+
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return "—";
+  return new Date(dateStr).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+// ── Component ──
 export default function CaregiverSchedulePage() {
   const router = useRouter();
-  const [selectedDay, setSelectedDay] = useState(5);
-  const [bookings, setBookings] = useState<any[]>([]);
+  const [tab, setTab] = useState<FilterTab>("all");
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const loadBookings = async () => {
+    const load = async () => {
       try {
         const data = await fetchBookings();
         setBookings(data || []);
       } catch (err) {
+        setError("Gagal memuat riwayat tugas. Coba lagi nanti.");
         console.error("Failed to fetch bookings", err);
       } finally {
         setLoading(false);
       }
     };
-    loadBookings();
+    load();
   }, []);
+
+  const filtered = getFilteredBookings(bookings, tab);
+
+  const tabItems: { key: FilterTab; label: string; count: number }[] = [
+    { key: "all", label: "Semua", count: bookings.length },
+    { key: "active", label: "Aktif", count: getFilteredBookings(bookings, "active").length },
+    { key: "completed", label: "Selesai", count: getFilteredBookings(bookings, "completed").length },
+    { key: "other", label: "Lainnya", count: getFilteredBookings(bookings, "other").length },
+  ];
 
   return (
     <div className={styles.pageWrapper}>
       <main className={styles.container}>
         {/* Header */}
         <header className={styles.header}>
-          <button className={styles.backBtn} onClick={() => router.push("/caregiver")}>
-            <FontAwesomeIcon icon={faArrowLeft} />
-          </button>
-          <h1 className={styles.title}>schedule</h1>
+          <div className={styles.headerIcon}>
+            <FontAwesomeIcon icon={faClockRotateLeft} />
+          </div>
+          <h1 className={styles.title}>Riwayat Tugas</h1>
         </header>
 
-        {/* Calendar Section */}
-        <div className={styles.calendarSection}>
-          <p className={styles.dateText}>May 5, 2026</p>
-          <h2 className={styles.todayText}>Today</h2>
-          
-          <div className={styles.daysScroll}>
-            {[4, 5, 6, 7, 8, 9].map((day, idx) => (
-              <div 
-                key={day} 
-                className={`${styles.dayCard} ${selectedDay === day ? styles.dayCardActive : ""}`}
-                onClick={() => setSelectedDay(day)}
-              >
-                <span className={styles.dayName}>
-                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][idx]}
+        {/* Filter Tabs */}
+        <div className={styles.tabsBar}>
+          {tabItems.map((t) => (
+            <button
+              key={t.key}
+              className={`${styles.tabBtn} ${tab === t.key ? styles.tabBtnActive : ""}`}
+              onClick={() => setTab(t.key)}
+            >
+              {t.label}
+              {t.count > 0 && (
+                <span className={`${styles.tabBadge} ${tab === t.key ? styles.tabBadgeActive : ""}`}>
+                  {t.count}
                 </span>
-                <span className={styles.dayNumber}>{day}</span>
-              </div>
-            ))}
-          </div>
+              )}
+            </button>
+          ))}
         </div>
 
-        {/* Schedule List */}
-        <div className={styles.scheduleList}>
-          <div className={styles.timelineLine} />
-          
+        {/* Content */}
+        <div className={styles.listSection}>
           {loading ? (
-            <div style={{ padding: "20px", textAlign: "center" }}>Memuat jadwal...</div>
-          ) : bookings.map((item) => {
-            const isOngoing = item.status === "in_progress" || item.status === "matched" || item.status.includes("heading") || item.status.includes("patient") || item.status.includes("registration") || item.status.includes("consultation") || item.status.includes("queue");
-            return (
-              <div key={item.id} className={styles.scheduleItemWrapper} onClick={() => router.push(`/caregiver/schedule/${item.id}`)}>
-                <div className={styles.timelineDot} />
-                <div className={`${styles.scheduleCard} ${isOngoing ? styles.scheduleCardOngoing : ""}`}>
-                  <div className={styles.cardTop}>
-                    <span className={styles.patientName}>{item.patient?.name || "Pasien"}</span>
-                    <span className={styles.timeText}>{new Date(item.scheduledAt || Date.now()).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}</span>
-                  </div>
-                  <div className={styles.facilityName}>{item.facility?.name || item.facilityName || "Fasilitas"}</div>
-                  <div className={styles.statusText}>
-                    <FontAwesomeIcon icon={isOngoing ? faCircleCheck : faClock} className={styles.statusIcon} />
-                    {item.status.replace(/_/g, " ")}
+            <div className={styles.stateWrapper}>
+              <FontAwesomeIcon icon={faSpinner} spin className={styles.stateIcon} />
+              <p className={styles.stateText}>Memuat riwayat tugas...</p>
+            </div>
+          ) : error ? (
+            <div className={styles.stateWrapper}>
+              <p className={styles.stateTextError}>{error}</p>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className={styles.stateWrapper}>
+              <FontAwesomeIcon icon={faClockRotateLeft} className={styles.stateIconEmpty} />
+              <p className={styles.stateText}>
+                {tab === "active"
+                  ? "Tidak ada tugas aktif saat ini."
+                  : tab === "completed"
+                  ? "Belum ada tugas yang selesai."
+                  : "Belum ada data tugas."}
+              </p>
+            </div>
+          ) : (
+            <div className={styles.bookingList}>
+              {filtered.map((item) => (
+                <div
+                  key={item.id}
+                  className={`${styles.bookingCard} ${ACTIVE_STATUSES.includes(item.status) ? styles.bookingCardActive : ""}`}
+                  onClick={() => router.push(`/caregiver/schedule/${item.id}`)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === "Enter" && router.push(`/caregiver/schedule/${item.id}`)}
+                >
+                  {/* Status bar on left */}
+                  <div className={`${styles.statusBar} ${getStatusClass(item.status, styles)}`} />
+
+                  <div className={styles.cardBody}>
+                    {/* Top row */}
+                    <div className={styles.cardTop}>
+                      <span className={styles.patientName}>
+                        {item.patient?.name || "Pasien"}
+                      </span>
+                      <span className={`${styles.statusChip} ${getStatusClass(item.status, styles)}`}>
+                        <FontAwesomeIcon icon={getStatusIcon(item.status)} />
+                        {STATUS_LABEL[item.status] || item.status.replace(/_/g, " ")}
+                      </span>
+                    </div>
+
+                    {/* Facility */}
+                    <p className={styles.facilityName}>
+                      {item.facility?.name || item.facilityName || "—"}
+                    </p>
+                    <p className={styles.facilityAddress}>
+                      {item.facility?.address || item.facilityAddress || ""}
+                    </p>
+
+                    {/* Bottom row */}
+                    <div className={styles.cardBottom}>
+                      <span className={styles.dateText}>
+                        <FontAwesomeIcon icon={faCalendarDays} />
+                        {formatDate(item.scheduledAt || item.createdAt)}
+                      </span>
+                      <span className={styles.bookingType}>
+                        {item.bookingType === "immediate" ? "Segera" : "Terjadwal"}
+                      </span>
+                      <FontAwesomeIcon icon={faChevronRight} className={styles.arrowIcon} />
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-          
-          <div className={styles.scheduleItemWrapper}>
-            <div className={styles.timelineDotEmpty} />
-            <div className={styles.emptyCard}>
-              <div className={styles.emptyLine} />
-              <div className={styles.emptyLineShort} />
+              ))}
             </div>
-          </div>
+          )}
         </div>
       </main>
 

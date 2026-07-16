@@ -105,8 +105,10 @@ export async function apiFetch<T = unknown>(
   }
 
   if (!res.ok || json.success === false) {
+    console.error("API Error Response:", json);
     const errorMessage =
       json.message || `Request failed with status ${res.status}`;
+    // Attach original json as well if possible, or just log it
     throw new Error(errorMessage);
   }
 
@@ -242,10 +244,53 @@ export async function fetchPatients(): Promise<MockPatient[]> {
   return await apiFetch<MockPatient[]>("/patients");
 }
 
+export interface CreatePatientPayload {
+  name: string;
+  dateOfBirth: string;
+  gender: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  mobilityStatus?: string;
+  allergies?: string[];
+  currentMedications?: string[];
+  patientNote: string;
+  emergencyContact: {
+    name: string;
+    phone: string;
+  };
+}
+
+export async function createPatient(payload: CreatePatientPayload): Promise<MockPatient> {
+  return await apiFetch<MockPatient>("/patients", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function fetchPatientById(id: string): Promise<MockPatient> {
+  return await apiFetch<MockPatient>(`/patients/${id}`);
+}
+
 export async function fetchBookings(): Promise<MockBooking[]> {
   return await apiFetch<MockBooking[]>("/bookings");
 }
 
 export async function fetchCaregivers(): Promise<MockCaregiver[]> {
   return await apiFetch<MockCaregiver[]>("/caregivers");
+}
+
+export interface CreateBookingPayload {
+  patientId: string;
+  bookingType: "immediate" | "scheduled";
+  scheduledAt?: string;
+  facilityName: string;
+  facilityAddress: string;
+}
+
+export async function createBooking(payload: CreateBookingPayload): Promise<MockBooking> {
+  return await apiFetch<MockBooking>("/bookings", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }

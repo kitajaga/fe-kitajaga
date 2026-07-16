@@ -16,7 +16,7 @@ import {
   BOOKING_STATUS_LABELS,
 } from "@/lib/mockData";
 import { useApi } from "@/hooks/useApi";
-import { fetchProfile, fetchBookings, fetchPatients, fetchCaregivers } from "@/lib/api";
+import { fetchProfile, fetchBookings, fetchPatients } from "@/lib/api";
 import type { BookingStatus } from "@/lib/mockData";
 import styles from "./dashboard.module.css";
 
@@ -56,9 +56,8 @@ export default function UserDashboardPage() {
   const { data: user, loading: loadingUser } = useApi(fetchProfile);
   const { data: bookings, loading: loadingBookings } = useApi(fetchBookings);
   const { data: patients, loading: loadingPatients } = useApi(fetchPatients);
-  const { data: caregivers, loading: loadingCaregivers } = useApi(fetchCaregivers);
 
-  const isLoading = loadingUser || loadingBookings || loadingPatients || loadingCaregivers;
+  const isLoading = loadingUser || loadingBookings || loadingPatients;
 
   if (isLoading) {
     return (
@@ -91,30 +90,6 @@ export default function UserDashboardPage() {
         </button>
       </header>
 
-      {/* ── Quick Actions ── */}
-      <div className={styles.quickActions}>
-        <button
-          className={`${styles.quickAction} ${styles.quickActionPrimary}`}
-          onClick={() => router.push("/bookings/new?type=immediate")}
-          id="dashboard-immediate-btn"
-        >
-          <div className={styles.quickActionIcon}>
-            <FontAwesomeIcon icon={faBolt} />
-          </div>
-          <span className={styles.quickActionLabel}>Pesan Sekarang</span>
-        </button>
-        <button
-          className={`${styles.quickAction} ${styles.quickActionSecondary}`}
-          onClick={() => router.push("/bookings/new?type=scheduled")}
-          id="dashboard-scheduled-btn"
-        >
-          <div className={styles.quickActionIcon}>
-            <FontAwesomeIcon icon={faCalendarPlus} />
-          </div>
-          <span className={styles.quickActionLabel}>Jadwalkan Layanan</span>
-        </button>
-      </div>
-
       {/* ── Promotional Banners ── */}
       <section className={styles.bannerSection}>
         <div className={`${styles.bannerCard} ${styles.bannerCard1}`}>
@@ -135,18 +110,13 @@ export default function UserDashboardPage() {
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Booking Aktif</h2>
-          <button className={styles.seeAllButton} onClick={() => router.push("/activity")} id="dashboard-see-all-booking">
+          <button className={styles.seeAllButton} onClick={() => router.push("/schedule")} id="dashboard-see-all-booking">
             Lihat Semua <FontAwesomeIcon icon={faChevronRight} />
           </button>
         </div>
 
         {activeBookings.length > 0 ? (
           activeBookings.map((booking) => {
-            const patient = (patients || []).find((p) => p.id === booking.patientId);
-            const caregiver = booking.caregiverId
-              ? (caregivers || []).find((c) => c.id === booking.caregiverId)
-              : null;
-
             return (
               <div
                 key={booking.id}
@@ -158,9 +128,9 @@ export default function UserDashboardPage() {
                     <FontAwesomeIcon icon={faUserInjured} />
                   </div>
                   <div className={styles.bookingCardInfo}>
-                    <span className={styles.bookingCardName}>{patient?.name ?? "Pasien"}</span>
+                    <span className={styles.bookingCardName}>{booking.patient?.name || "Pasien"}</span>
                     <span className={styles.bookingCardDetail}>
-                      {booking.facilityName} · {booking.bookingType === "immediate" ? "Sekarang" : new Date(booking.scheduledAt!).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
+                      {booking.facilityName || "Fasilitas tidak diketahui"} · {booking.bookingType === "immediate" ? "Sekarang" : new Date(booking.scheduledAt!).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
                     </span>
                     <span className={`${styles.bookingCardStatus} ${getStatusStyle(booking.status)}`}>
                       <FontAwesomeIcon icon={getStatusIcon(booking.status)} />
@@ -168,7 +138,7 @@ export default function UserDashboardPage() {
                     </span>
                   </div>
                 </div>
-                {booking.status === "in_progress" && caregiver && (
+                {booking.status === "in_progress" && booking.caregiver && (
                   <div className={styles.bookingCardActions}>
                     <button
                       className={styles.trackButton}
