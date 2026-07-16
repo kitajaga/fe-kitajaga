@@ -1,0 +1,807 @@
+/* ========================================
+   Booking Pages — Styles
+   ======================================== */
+
+/* ── Shared Page Header ── */
+.pageHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-5) var(--space-4);
+  background: var(--color-white);
+  border-bottom: 1px solid var(--color-gray-150);
+}
+
+.backButton {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: var(--color-gray-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-base);
+  color: var(--color-gray-600);
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.backButton:hover {
+  background: var(--color-gray-200);
+  color: var(--color-primary);
+}
+
+.pageTitle {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--color-gray-900);
+  flex: 1;
+}
+
+/* ═══════════════════════════════════════
+   NEW BOOKING — Multi-Step Form
+   ═══════════════════════════════════════ */
+
+/* ── Step Indicator ── */
+.stepIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-white);
+}
+
+.stepDot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--color-gray-200);
+  transition: all var(--transition-base);
+}
+
+.stepDotActive {
+  background: var(--color-primary);
+  width: 28px;
+}
+
+.stepDotDone {
+  background: var(--color-success);
+}
+
+.stepLine {
+  width: 24px;
+  height: 2px;
+  background: var(--color-gray-200);
+}
+
+.stepLineDone {
+  background: var(--color-success);
+}
+
+/* ── Step Content ── */
+.stepContent {
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  animation: fadeInUp 0.3s ease forwards;
+}
+
+.stepTitle {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-gray-900);
+}
+
+.stepSubtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-500);
+  margin-top: calc(-1 * var(--space-2));
+}
+
+/* ── Selection Cards ── */
+.selectionList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.selectionCard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--color-white);
+  border: 2px solid var(--color-gray-200);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-4);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+}
+
+.selectionCard:hover {
+  border-color: var(--color-primary-lighter);
+  box-shadow: var(--shadow-sm);
+}
+
+.selectionCardActive {
+  border-color: var(--color-primary);
+  background: #F0F4FF;
+  box-shadow: 0 0 0 3px rgba(16, 54, 125, 0.1);
+}
+
+.selectionCardIcon {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  border-radius: var(--radius-xl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+.iconBlue {
+  background: linear-gradient(135deg, #DBEAFE, #BFDBFE);
+  color: var(--color-primary);
+}
+
+.iconGreen {
+  background: linear-gradient(135deg, #D1FAE5, #A7F3D0);
+  color: #065F46;
+}
+
+.iconAmber {
+  background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+  color: #92400E;
+}
+
+.iconPink {
+  background: linear-gradient(135deg, #FCE7F3, #FBCFE8);
+  color: #9D174D;
+}
+
+.selectionCardText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.selectionCardTitle {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-gray-900);
+}
+
+.selectionCardSub {
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-500);
+  line-height: 1.4;
+}
+
+.selectionRadio {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-gray-300);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.selectionRadioActive {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+}
+
+.selectionRadioActive::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-white);
+}
+
+/* ── Form inputs reused ── */
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.inputLabel {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-gray-700);
+  padding-left: var(--space-1);
+}
+
+.input {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-base);
+  color: var(--color-gray-800);
+  background: var(--color-white);
+  border: 1.5px solid var(--color-gray-200);
+  border-radius: var(--radius-xl);
+  transition: all var(--transition-fast);
+  line-height: 1.5;
+  font-family: inherit;
+}
+
+.input::placeholder {
+  color: var(--color-gray-400);
+}
+
+.input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(16, 54, 125, 0.1);
+}
+
+/* ── Confirm Summary ── */
+.confirmCard {
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.confirmRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.confirmLabel {
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-500);
+  font-weight: 500;
+}
+
+.confirmValue {
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-800);
+  font-weight: 600;
+  text-align: right;
+  max-width: 60%;
+}
+
+.confirmDivider {
+  height: 1px;
+  background: var(--color-gray-100);
+}
+
+/* ── Navigation Buttons ── */
+.stepNav {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5) var(--space-8);
+}
+
+.prevButton {
+  flex: 1;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-gray-100);
+  color: var(--color-gray-700);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  border-radius: var(--radius-xl);
+  transition: all var(--transition-fast);
+}
+
+.prevButton:hover {
+  background: var(--color-gray-200);
+}
+
+.nextButton {
+  flex: 2;
+  padding: var(--space-3) var(--space-4);
+  background: var(--gradient-brand);
+  color: var(--color-white);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  border-radius: var(--radius-xl);
+  transition: all var(--transition-base);
+  box-shadow: 0 4px 14px rgba(16, 54, 125, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.nextButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 54, 125, 0.4);
+}
+
+.nextButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* ═══════════════════════════════════════
+   BOOKING DETAIL — Status-based UI
+   ═══════════════════════════════════════ */
+
+.detailContainer {
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* ── Status Banner ── */
+.statusBanner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-2xl);
+  animation: fadeIn 0.4s ease forwards;
+}
+
+.statusBannerPending {
+  background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+  color: #92400E;
+}
+
+.statusBannerActive {
+  background: linear-gradient(135deg, #DBEAFE, #BFDBFE);
+  color: var(--color-primary);
+}
+
+.statusBannerComplete {
+  background: linear-gradient(135deg, #D1FAE5, #A7F3D0);
+  color: #065F46;
+}
+
+.statusBannerError {
+  background: linear-gradient(135deg, #FEF2F2, #FECACA);
+  color: #991B1B;
+}
+
+.statusBannerIcon {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+.statusBannerText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.statusBannerTitle {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+}
+
+.statusBannerSub {
+  font-size: var(--font-size-xs);
+  opacity: 0.8;
+}
+
+/* ── Searching Animation ── */
+.searchingAnimation {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-8) var(--space-4);
+}
+
+.searchingDots {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.searchingDot {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  animation: dotPulse 1.2s ease-in-out infinite;
+}
+
+.searchingDot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.searchingDot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.searchingText {
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-500);
+  text-align: center;
+}
+
+/* ── Caregiver Profile Card ── */
+.caregiverCard {
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.caregiverTop {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.caregiverAvatar {
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, #DBEAFE, #EFF6FF);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.caregiverInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.caregiverName {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-gray-900);
+}
+
+.caregiverMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-500);
+}
+
+.caregiverRating {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: #D97706;
+  font-weight: 600;
+}
+
+/* ── Progress Timeline ── */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: var(--space-2) 0;
+}
+
+.timelineItem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  position: relative;
+  padding-bottom: var(--space-4);
+}
+
+.timelineItem:last-child {
+  padding-bottom: 0;
+}
+
+.timelineDot {
+  width: 12px;
+  height: 12px;
+  min-width: 12px;
+  border-radius: var(--radius-full);
+  background: var(--color-gray-200);
+  margin-top: 4px;
+  position: relative;
+  z-index: 1;
+}
+
+.timelineDotDone {
+  background: var(--color-success);
+}
+
+.timelineDotCurrent {
+  background: var(--color-primary);
+  box-shadow: 0 0 0 4px rgba(16, 54, 125, 0.15);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.timelineItem:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 18px;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-gray-200);
+}
+
+.timelineItem:not(:last-child).timelineItemDone::after {
+  background: var(--color-success);
+}
+
+.timelineContent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.timelineLabel {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-gray-900);
+}
+
+.timelineLabelMuted {
+  color: var(--color-gray-400);
+}
+
+.timelineTime {
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-500);
+}
+
+.timelineNote {
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-500);
+  font-style: italic;
+  margin-top: 2px;
+}
+
+/* ── Info Card (reused) ── */
+.infoCard {
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-4);
+}
+
+.infoCardTitle {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-gray-900);
+  margin-bottom: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.infoCardTitleIcon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #EFF6FF, #DBEAFE);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-xs);
+  color: var(--color-primary);
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-gray-100);
+}
+
+.infoRow:last-child {
+  border-bottom: none;
+}
+
+.infoLabel {
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-500);
+  font-weight: 500;
+}
+
+.infoValue {
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-800);
+  font-weight: 500;
+  text-align: right;
+  max-width: 60%;
+}
+
+/* ── Report Card ── */
+.reportCard {
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.reportText {
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-700);
+  line-height: 1.6;
+}
+
+/* ── Rating Form ── */
+.ratingForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-4);
+}
+
+.starsRow {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.starButton {
+  font-size: 2rem;
+  color: var(--color-gray-200);
+  transition: all var(--transition-fast);
+  padding: var(--space-1);
+}
+
+.starButton:hover {
+  transform: scale(1.15);
+}
+
+.starActive {
+  color: #F59E0B;
+}
+
+.ratingTextarea {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-800);
+  background: var(--color-gray-50);
+  border: 1.5px solid var(--color-gray-200);
+  border-radius: var(--radius-xl);
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.ratingTextarea:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(16, 54, 125, 0.1);
+  outline: none;
+}
+
+.submitRatingButton {
+  width: 100%;
+  padding: var(--space-4);
+  background: var(--gradient-brand);
+  color: var(--color-white);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  border-radius: var(--radius-xl);
+  box-shadow: 0 4px 14px rgba(16, 54, 125, 0.3);
+  transition: all var(--transition-base);
+}
+
+.submitRatingButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 54, 125, 0.4);
+}
+
+.submitRatingButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Action buttons ── */
+.actionRow {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.primaryAction {
+  flex: 1;
+  padding: var(--space-3) var(--space-4);
+  background: var(--gradient-brand);
+  color: var(--color-white);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  border-radius: var(--radius-xl);
+  transition: all var(--transition-base);
+  box-shadow: 0 2px 8px rgba(16, 54, 125, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.primaryAction:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 54, 125, 0.3);
+}
+
+.secondaryAction {
+  flex: 1;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-gray-100);
+  color: var(--color-gray-700);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  border-radius: var(--radius-xl);
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.secondaryAction:hover {
+  background: var(--color-gray-200);
+}
+
+/* ── Keyframes ── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes dotPulse {
+  0%, 100% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.3); opacity: 1; }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

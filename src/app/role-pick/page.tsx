@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faHandSparkles } from "@fortawesome/free-solid-svg-icons/faHandSparkles";
 import { faUsers } from "@fortawesome/free-solid-svg-icons/faUsers";
@@ -9,7 +9,7 @@ import { faChevronRight } from "@fortawesome/free-solid-svg-icons/faChevronRight
 import styles from "./role-pick.module.css";
 
 export default function RolePickPage() {
-  const router = useRouter();
+  // Removed useRouter since we use Link now
 
   return (
     <main id="role-pick-screen" className={styles.rolePickContainer}>
@@ -20,16 +20,16 @@ export default function RolePickPage() {
         </div>
         <h1 className={styles.headerTitle}>Pilih Peran Anda</h1>
         <p className={styles.headerSubtitle}>
-          Masuk sebagai keluarga pasien yang mencari caregiver, atau sebagai caregiver yang siap membantu.
+          Daftar sebagai keluarga pasien yang mencari caregiver, atau sebagai caregiver yang siap membantu.
         </p>
       </div>
 
       {/* Role Cards */}
       <div className={styles.cardsSection}>
         {/* User Card */}
-        <button
+        <Link
+          href="/auth/user/register"
           className={styles.roleCard}
-          onClick={() => router.push("/auth/user/login")}
           id="role-pick-user"
         >
           <div className={`${styles.cardIcon} ${styles.cardIconUser}`}>
@@ -42,12 +42,12 @@ export default function RolePickPage() {
             </span>
           </div>
           <FontAwesomeIcon icon={faChevronRight} className={styles.cardArrow} />
-        </button>
+        </Link>
 
         {/* Caregiver Card */}
-        <button
+        <Link
+          href="/auth/caregiver/register"
           className={styles.roleCard}
-          onClick={() => router.push("/auth/caregiver/login")}
           id="role-pick-caregiver"
         >
           <div className={`${styles.cardIcon} ${styles.cardIconCaregiver}`}>
@@ -60,7 +60,7 @@ export default function RolePickPage() {
             </span>
           </div>
           <FontAwesomeIcon icon={faChevronRight} className={styles.cardArrow} />
-        </button>
+        </Link>
       </div>
 
       {/* Footer */}

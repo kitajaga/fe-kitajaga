@@ -13,16 +13,16 @@ import {
   faCircleQuestion,
   faRightFromBracket
 } from "@fortawesome/free-solid-svg-icons";
-import { logout } from "@/lib/api"; // Note: Might need to implement logout in api.ts
+import { clearAuth } from "@/lib/api";
+import { MOCK_CAREGIVERS } from "@/lib/mockData";
 import styles from "./profile.module.css";
 
 export default function CaregiverProfilePage() {
   const router = useRouter();
+  const caregiver = MOCK_CAREGIVERS[0];
 
   const handleLogout = () => {
-    // Assuming simple local storage clear
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    clearAuth();
     router.push("/role-pick");
   };
 
@@ -41,8 +41,8 @@ export default function CaregiverProfilePage() {
           <div className={styles.avatarLarge}>
             <FontAwesomeIcon icon={faUserCircle} />
           </div>
-          <h2 className={styles.name}>Suster Rina</h2>
-          <p className={styles.email}>rina.caregiver@example.com</p>
+          <h2 className={styles.name}>{caregiver.name}</h2>
+          <p className={styles.email}>{caregiver.email}</p>
           
           <div className={styles.statsRow}>
             <div className={styles.statItem}>

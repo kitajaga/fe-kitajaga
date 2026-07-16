@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft, faUser, faComments, faCheck, faLocationArrow } from "@fortawesome/free-solid-svg-icons";
 import { getBookingDetail, getBookingProgress, updateBookingProgress } from "@/lib/api";
+import { getBookingById, getPatientById, getProgressForBooking } from "@/lib/mockData";
 import styles from "./tracking.module.css";
 
 const PROGRESS_STEPS = [
@@ -32,8 +33,15 @@ export default function TrackingPage() {
     const fetchAll = async () => {
       try {
         const [bookingData, progressData] = await Promise.all([
-          getBookingDetail(bookingId).catch(() => ({ patient: { name: "Budi Santoso" }, facility: { name: "RSCM Jakarta" } })),
-          getBookingProgress(bookingId).catch(() => ({ history: [{ status: "heading_to_patient" }] }))
+          getBookingDetail(bookingId).catch(() => {
+            const b = getBookingById(bookingId);
+            const p = b ? getPatientById(b.patientId) : null;
+            return { patient: { name: p?.name || "Budi Santoso" }, facility: { name: b?.facilityName || "RSCM Jakarta" } };
+          }),
+          getBookingProgress(bookingId).catch(() => {
+            const p = getProgressForBooking(bookingId);
+            return { history: p.length > 0 ? p : [{ status: "heading_to_patient" }] };
+          })
         ]);
         setBooking(bookingData);
         setHistory(progressData.history || []);
