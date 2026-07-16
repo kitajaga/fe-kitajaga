@@ -9,7 +9,7 @@ interface UseApiResponse<T> {
 
 export function useApi<T>(
   fetcher: () => Promise<T>,
-  dependencies: any[] = []
+  dependencies: unknown[] = []
 ): UseApiResponse<T> {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
