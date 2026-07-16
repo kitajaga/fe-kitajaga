@@ -19,7 +19,7 @@ export default function ProfilePage() {
 
   const handleLogout = () => {
     clearAuth();
-    router.push("/role-pick");
+    router.push("/auth/user/login");
   };
 
   if (loading) {

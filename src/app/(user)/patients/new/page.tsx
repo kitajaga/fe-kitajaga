@@ -4,12 +4,14 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons/faArrowLeft";
+import { createPatient } from "@/lib/api";
 import styles from "../patients.module.css";
 
 interface FormErrors {
   name?: string;
   dateOfBirth?: string;
   gender?: string;
+  address?: string;
   patientNote?: string;
   ecName?: string;
   ecPhone?: string;
@@ -20,6 +22,7 @@ export default function NewPatientPage() {
   const [name, setName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [gender, setGender] = useState("");
+  const [address, setAddress] = useState("");
   const [patientNote, setPatientNote] = useState("");
   const [ecName, setEcName] = useState("");
   const [ecPhone, setEcPhone] = useState("");
@@ -31,21 +34,42 @@ export default function NewPatientPage() {
     if (!name.trim()) ne.name = "Nama pasien wajib diisi";
     if (!dateOfBirth) ne.dateOfBirth = "Tanggal lahir wajib diisi";
     if (!gender) ne.gender = "Jenis kelamin wajib dipilih";
+    if (!address.trim()) ne.address = "Alamat wajib diisi";
     if (!ecName.trim()) ne.ecName = "Nama kontak darurat wajib diisi";
     if (!ecPhone.trim()) ne.ecPhone = "Telepon kontak darurat wajib diisi";
     setErrors(ne);
     return Object.keys(ne).length === 0;
-  }, [name, dateOfBirth, gender, ecName, ecPhone]);
+  }, [name, dateOfBirth, gender, address, ecName, ecPhone]);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
     setIsLoading(true);
-    // Simulated API call — POST /patients
-    await new Promise((r) => setTimeout(r, 1000));
-    setIsLoading(false);
-    router.push("/patients");
-  }, [validate, router]);
+    try {
+      await createPatient({
+        name,
+        dateOfBirth,
+        gender,
+        address,
+        latitude: -6.195,
+        longitude: 106.832,
+        mobilityStatus: "independent",
+        allergies: [],
+        currentMedications: [],
+        patientNote,
+        emergencyContact: {
+          name: ecName,
+          phone: ecPhone,
+        }
+      });
+      router.push("/patients");
+    } catch (error: any) {
+      console.error(error);
+      alert(error.message || "Gagal menyimpan data pasien.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [validate, router, name, dateOfBirth, gender, address, patientNote, ecName, ecPhone]);
 
   const clearErr = useCallback((f: keyof FormErrors) => {
     setErrors((p) => ({ ...p, [f]: undefined }));
@@ -85,6 +109,12 @@ export default function NewPatientPage() {
             <option value="female">Perempuan</option>
           </select>
           {errors.gender && <span className={styles.fieldError}>{errors.gender}</span>}
+        </div>
+
+        <div className={styles.inputGroup}>
+          <label className={styles.inputLabel} htmlFor="patient-address">Alamat Domisili</label>
+          <textarea id="patient-address" className={`${styles.input} ${styles.textarea} ${errors.address ? styles.inputError : ""}`} placeholder="Alamat lengkap" value={address} onChange={(e) => { setAddress(e.target.value); if (errors.address) clearErr("address"); }} disabled={isLoading} />
+          {errors.address && <span className={styles.fieldError}>{errors.address}</span>}
         </div>
 
         <div className={styles.inputGroup}>

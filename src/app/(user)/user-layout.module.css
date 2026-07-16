@@ -61,3 +61,31 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+.centerNavBtn {
+  position: relative;
+  top: -15px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0 var(--space-2);
+}
+
+.centerIconWrapper {
+  width: 50px;
+  height: 50px;
+  background: var(--color-primary);
+  color: var(--color-white);
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.5rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  transition: transform var(--transition-fast), background var(--transition-fast);
+}
+
+.centerNavBtn:hover .centerIconWrapper {
+  transform: scale(1.05);
+  background: var(--color-primary-dark);
+}

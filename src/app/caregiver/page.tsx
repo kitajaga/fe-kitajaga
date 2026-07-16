@@ -15,7 +15,7 @@ import { faCircleCheck } from "@fortawesome/free-solid-svg-icons/faCircleCheck";
 import { faHeartPulse } from "@fortawesome/free-solid-svg-icons/faHeartPulse";
 import { faShieldHeart } from "@fortawesome/free-solid-svg-icons/faShieldHeart";
 import styles from "./home.module.css";
-import { fetchCaregiverProfile, fetchBookings } from "@/lib/api";
+import { fetchCaregiverProfile, fetchBookings, getUser } from "@/lib/api";
 
 const BANNERS = [
   { id: 1, title: "Selamat Datang di Kitajaga!", subtitle: "Platform pendampingan lansia terpercaya", color: "var(--gradient-brand)" },
@@ -32,10 +32,25 @@ const TIPS = [
 export default function CaregiverHomePage() {
   const router = useRouter();
   const [activeBanner, setActiveBanner] = useState(0);
-  const [profile, setProfile] = useState<any>(null);
-  const [activeBooking, setActiveBooking] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null); //belum ada api profile
+  const [activeBooking, setActiveBooking] = useState<any>(null); //belum ada api profile
   const [loading, setLoading] = useState(true);
 
+  // ── Role Guard ──
+  useEffect(() => {
+    const user = getUser();
+    if (!user || !user.token) {
+      router.replace("/auth/caregiver/login");
+      return;
+    }
+    if (user.role !== "caregiver") {
+      // User (keluarga) mencoba akses halaman caregiver
+      router.replace("/dashboard");
+      return;
+    }
+  }, [router]);
+
+  // ── Data Loading ──
   useEffect(() => {
     const loadData = async () => {
       try {

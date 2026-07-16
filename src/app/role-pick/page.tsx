@@ -1,74 +1,119 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faHandSparkles } from "@fortawesome/free-solid-svg-icons/faHandSparkles";
 import { faUsers } from "@fortawesome/free-solid-svg-icons/faUsers";
 import { faUserNurse } from "@fortawesome/free-solid-svg-icons/faUserNurse";
-import { faChevronRight } from "@fortawesome/free-solid-svg-icons/faChevronRight";
+import { faArrowRight } from "@fortawesome/free-solid-svg-icons/faArrowRight";
+import { faArrowLeft } from "@fortawesome/free-solid-svg-icons/faArrowLeft";
 import styles from "./role-pick.module.css";
 
 export default function RolePickPage() {
-  // Removed useRouter since we use Link now
+  const router = useRouter();
 
   return (
-    <main id="role-pick-screen" className={styles.rolePickContainer}>
-      {/* Header */}
-      <div className={styles.header}>
-        <div className={styles.headerIcon}>
-          <FontAwesomeIcon icon={faHandSparkles} style={{ color: "#FFF" }} />
-        </div>
-        <h1 className={styles.headerTitle}>Pilih Peran Anda</h1>
-        <p className={styles.headerSubtitle}>
-          Daftar sebagai keluarga pasien yang mencari caregiver, atau sebagai caregiver yang siap membantu.
+    <main id="role-pick-screen" className={styles.page}>
+      {/* Back button */}
+      <button
+        className={styles.backBtn}
+        onClick={() => router.push("/onboarding")}
+        aria-label="Kembali ke onboarding"
+        id="role-pick-back-btn"
+      >
+        <FontAwesomeIcon icon={faArrowLeft} />
+      </button>
+
+      {/* Brand */}
+      <div className={styles.brand}>
+        <Image
+          src="/icons/kitajaga-logo.png"
+          alt="Kitajaga"
+          width={52}
+          height={52}
+          className={styles.logo}
+          priority
+        />
+        <span className={styles.brandName}>Kitajaga</span>
+      </div>
+
+      {/* Heading */}
+      <div className={styles.heading}>
+        <h1 className={styles.title}>Siapa Anda?</h1>
+        <p className={styles.subtitle}>
+          Pilih peran Anda untuk melanjutkan ke aplikasi
         </p>
       </div>
 
       {/* Role Cards */}
-      <div className={styles.cardsSection}>
-        {/* User Card */}
-        <Link
-          href="/auth/user/register"
-          className={styles.roleCard}
-          id="role-pick-user"
-        >
-          <div className={`${styles.cardIcon} ${styles.cardIconUser}`}>
-            <FontAwesomeIcon icon={faUsers} style={{ color: "var(--color-primary)" }} />
+      <div className={styles.cards}>
+        {/* ── User / Keluarga Pasien ── */}
+        <div className={styles.roleCard} id="role-card-user">
+          <div className={styles.cardHeader}>
+            <div className={`${styles.cardIconWrap} ${styles.cardIconUser}`}>
+              <FontAwesomeIcon icon={faUsers} />
+            </div>
+            <div className={styles.cardInfo}>
+              <span className={styles.cardTitle}>Keluarga Pasien</span>
+              <span className={styles.cardDesc}>
+                Pesan caregiver untuk mendampingi orang tua Anda
+              </span>
+            </div>
           </div>
-          <div className={styles.cardText}>
-            <span className={styles.cardTitle}>Keluarga Pasien</span>
-            <span className={styles.cardDescription}>
-              Cari caregiver terpercaya untuk mendampingi orang tua Anda
-            </span>
+          <div className={styles.cardActions}>
+            <button
+              className={`${styles.actionBtn} ${styles.actionBtnPrimary}`}
+              onClick={() => router.push("/auth/user/login")}
+              id="role-pick-user-login"
+            >
+              Masuk <FontAwesomeIcon icon={faArrowRight} />
+            </button>
+            <button
+              className={`${styles.actionBtn} ${styles.actionBtnOutline}`}
+              onClick={() => router.push("/auth/user/register")}
+              id="role-pick-user-register"
+            >
+              Daftar
+            </button>
           </div>
-          <FontAwesomeIcon icon={faChevronRight} className={styles.cardArrow} />
-        </Link>
+        </div>
 
-        {/* Caregiver Card */}
-        <Link
-          href="/auth/caregiver/register"
-          className={styles.roleCard}
-          id="role-pick-caregiver"
-        >
-          <div className={`${styles.cardIcon} ${styles.cardIconCaregiver}`}>
-            <FontAwesomeIcon icon={faUserNurse} style={{ color: "#16A34A" }} />
+        {/* ── Caregiver ── */}
+        <div className={styles.roleCard} id="role-card-caregiver">
+          <div className={styles.cardHeader}>
+            <div className={`${styles.cardIconWrap} ${styles.cardIconCaregiver}`}>
+              <FontAwesomeIcon icon={faUserNurse} />
+            </div>
+            <div className={styles.cardInfo}>
+              <span className={styles.cardTitle}>Caregiver</span>
+              <span className={styles.cardDesc}>
+                Bergabung dan mulai terima pesanan pendampingan
+              </span>
+            </div>
           </div>
-          <div className={styles.cardText}>
-            <span className={styles.cardTitle}>Caregiver</span>
-            <span className={styles.cardDescription}>
-              Bergabung sebagai caregiver dan mulai membantu keluarga
-            </span>
+          <div className={styles.cardActions}>
+            <button
+              className={`${styles.actionBtn} ${styles.actionBtnGreen}`}
+              onClick={() => router.push("/auth/caregiver/login")}
+              id="role-pick-caregiver-login"
+            >
+              Masuk <FontAwesomeIcon icon={faArrowRight} />
+            </button>
+            <button
+              className={`${styles.actionBtn} ${styles.actionBtnOutlineGreen}`}
+              onClick={() => router.push("/auth/caregiver/register")}
+              id="role-pick-caregiver-register"
+            >
+              Daftar
+            </button>
           </div>
-          <FontAwesomeIcon icon={faChevronRight} className={styles.cardArrow} />
-        </Link>
+        </div>
       </div>
 
-      {/* Footer */}
-      <div className={styles.footer}>
-        <p className={styles.footerText}>
-          Anda bisa mengubah peran ini kapan saja di pengaturan akun
-        </p>
-      </div>
+      <p className={styles.footer}>
+        Dengan melanjutkan, Anda menyetujui{" "}
+        <span className={styles.footerLink}>Syarat &amp; Ketentuan</span> Kitajaga
+      </p>
     </main>
   );
 }

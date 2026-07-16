@@ -58,7 +58,7 @@ export default function OnboardingPage() {
   const handleNext = useCallback(() => {
     if (isLastSlide) {
       localStorage.setItem("onboarding_complete", "true");
-      router.push("/auth/user/login");
+      router.push("/role-pick");
     } else {
       setActiveSlide((prev) => prev + 1);
     }
@@ -66,7 +66,7 @@ export default function OnboardingPage() {
 
   const handleSkip = useCallback(() => {
     localStorage.setItem("onboarding_complete", "true");
-    router.push("/auth/user/login");
+    router.push("/role-pick");
   }, [router]);
 
   // ── Touch handlers ──

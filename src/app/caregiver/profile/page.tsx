@@ -17,9 +17,26 @@ import {
 import { clearAuth, fetchCaregiverProfile, fetchBookings } from "@/lib/api";
 import styles from "./profile.module.css";
 
+// Define the shape of the data returned by the API
+interface Caregiver {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  rating: number;
+  totalReviews: number;
+  photoUrl: string;
+  online: boolean;
+}
+
+interface Booking {
+  id: string;
+  status: string;
+}
+
 export default function CaregiverProfilePage() {
   const router = useRouter();
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<Caregiver | null>(null);
   const [completedCount, setCompletedCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -36,7 +53,7 @@ export default function CaregiverProfilePage() {
         }
         
         if (bookingsData) {
-          setCompletedCount(bookingsData.filter((b: any) => b.status === "completed" || b.status === "reported").length);
+          setCompletedCount(bookingsData.filter((b: Booking) => b.status === "completed" || b.status === "reported").length);
         }
       } catch (err) {
         console.error("Failed to load profile data", err);
@@ -50,7 +67,7 @@ export default function CaregiverProfilePage() {
 
   const handleLogout = () => {
     clearAuth();
-    router.push("/role-pick");
+    router.push("/auth/caregiver/login");
   };
 
   return (
