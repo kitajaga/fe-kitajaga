@@ -171,3 +171,23 @@ export async function getBookingProgress(id: string) {
   }
   return json.data;
 }
+
+export async function submitReport(id: string, reportData: { notes: string; conditionSummary: string }) {
+  const token = localStorage.getItem("token");
+  if (!token) throw new Error("No token found");
+
+  const res = await fetch(`${API_URL}/bookings/${id}/report`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(reportData)
+  });
+
+  const json = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json.message || "Failed to submit report");
+  }
+  return json.data;
+}
