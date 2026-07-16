@@ -1,34 +1,39 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faHandSparkles } from "@fortawesome/free-solid-svg-icons/faHandSparkles";
+import { faUsers } from "@fortawesome/free-solid-svg-icons/faUsers";
+import { faUserNurse } from "@fortawesome/free-solid-svg-icons/faUserNurse";
+import { faChevronRight } from "@fortawesome/free-solid-svg-icons/faChevronRight";
 import styles from "./role-pick.module.css";
 
 export default function RolePickPage() {
-  const router = useRouter();
+  // Removed useRouter since we use Link now
 
   return (
     <main id="role-pick-screen" className={styles.rolePickContainer}>
       {/* Header */}
       <div className={styles.header}>
         <div className={styles.headerIcon}>
-          <span role="img" aria-hidden="true">👋</span>
+          <FontAwesomeIcon icon={faHandSparkles} style={{ color: "#FFF" }} />
         </div>
         <h1 className={styles.headerTitle}>Pilih Peran Anda</h1>
         <p className={styles.headerSubtitle}>
-          Masuk sebagai keluarga pasien yang mencari caregiver, atau sebagai caregiver yang siap membantu.
+          Daftar sebagai keluarga pasien yang mencari caregiver, atau sebagai caregiver yang siap membantu.
         </p>
       </div>
 
       {/* Role Cards */}
       <div className={styles.cardsSection}>
         {/* User Card */}
-        <button
+        <Link
+          href="/auth/user/register"
           className={styles.roleCard}
-          onClick={() => router.push("/auth/user/login")}
           id="role-pick-user"
         >
           <div className={`${styles.cardIcon} ${styles.cardIconUser}`}>
-            <span role="img" aria-hidden="true">👨‍👩‍👧</span>
+            <FontAwesomeIcon icon={faUsers} style={{ color: "var(--color-primary)" }} />
           </div>
           <div className={styles.cardText}>
             <span className={styles.cardTitle}>Keluarga Pasien</span>
@@ -36,17 +41,17 @@ export default function RolePickPage() {
               Cari caregiver terpercaya untuk mendampingi orang tua Anda
             </span>
           </div>
-          <span className={styles.cardArrow} aria-hidden="true">→</span>
-        </button>
+          <FontAwesomeIcon icon={faChevronRight} className={styles.cardArrow} />
+        </Link>
 
         {/* Caregiver Card */}
-        <button
+        <Link
+          href="/auth/caregiver/register"
           className={styles.roleCard}
-          onClick={() => router.push("/auth/caregiver/login")}
           id="role-pick-caregiver"
         >
           <div className={`${styles.cardIcon} ${styles.cardIconCaregiver}`}>
-            <span role="img" aria-hidden="true">🩺</span>
+            <FontAwesomeIcon icon={faUserNurse} style={{ color: "#16A34A" }} />
           </div>
           <div className={styles.cardText}>
             <span className={styles.cardTitle}>Caregiver</span>
@@ -54,8 +59,8 @@ export default function RolePickPage() {
               Bergabung sebagai caregiver dan mulai membantu keluarga
             </span>
           </div>
-          <span className={styles.cardArrow} aria-hidden="true">→</span>
-        </button>
+          <FontAwesomeIcon icon={faChevronRight} className={styles.cardArrow} />
+        </Link>
       </div>
 
       {/* Footer */}

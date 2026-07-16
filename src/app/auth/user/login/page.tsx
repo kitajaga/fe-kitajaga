@@ -19,7 +19,7 @@ interface FormErrors {
   password?: string;
 }
 
-export default function CaregiverLoginPage() {
+export default function UserLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -53,7 +53,7 @@ export default function CaregiverLoginPage() {
       try {
         const data = await login({ email, password });
         saveAuth(data);
-        router.push("/caregiver");
+        router.push("/dashboard");
       } catch (err) {
         setApiError(err instanceof Error ? err.message : "Login gagal. Silakan coba lagi.");
       } finally {
@@ -64,10 +64,10 @@ export default function CaregiverLoginPage() {
   );
 
   return (
-    <main id="caregiver-login" className={styles.authContainer}>
+    <main id="user-login" className={styles.authContainer}>
       <div className={styles.brandBar}>
         <div className={styles.brandBarOrbs} aria-hidden="true" />
-        <button className={styles.backButton} onClick={() => router.push("/auth/user/login")} aria-label="Kembali" id="login-back-btn">
+        <button className={styles.backButton} onClick={() => router.push("/onboarding")} aria-label="Kembali" id="user-login-back-btn">
           <FontAwesomeIcon icon={faArrowLeft} />
         </button>
         <Image src="/icons/kitajaga-logo.png" alt="Kitajaga" width={48} height={48} className={styles.brandLogo} priority />
@@ -76,8 +76,8 @@ export default function CaregiverLoginPage() {
       <div className={styles.formSection}>
         <div className={styles.formWrapper}>
           <div className={styles.formHeader}>
-            <h1 className={styles.formTitle}>Masuk Caregiver</h1>
-            <p className={styles.formSubtitle}>Masukkan email dan password untuk mulai membantu keluarga</p>
+            <h1 className={styles.formTitle}>Masuk Keluarga</h1>
+            <p className={styles.formSubtitle}>Masukkan email dan password untuk menemukan caregiver terpercaya</p>
           </div>
           {apiError && (
             <div className={styles.errorBanner} role="alert">
@@ -87,29 +87,30 @@ export default function CaregiverLoginPage() {
           )}
           <form className={styles.form} onSubmit={handleSubmit} noValidate>
             <div className={styles.inputGroup}>
-              <label className={styles.inputLabel} htmlFor="login-email">Email</label>
+              <label className={styles.inputLabel} htmlFor="user-login-email">Email</label>
               <div className={styles.inputWrapper}>
                 <span className={styles.inputIcon} aria-hidden="true"><FontAwesomeIcon icon={faEnvelope} /></span>
-                <input id="login-email" type="email" className={`${styles.input} ${errors.email ? styles.inputError : ""}`} placeholder="nama@email.com" value={email} onChange={(e) => { setEmail(e.target.value); if (errors.email) setErrors((p) => ({ ...p, email: undefined })); }} autoComplete="email" disabled={isLoading} />
+                <input id="user-login-email" type="email" className={`${styles.input} ${errors.email ? styles.inputError : ""}`} placeholder="nama@email.com" value={email} onChange={(e) => { setEmail(e.target.value); if (errors.email) setErrors((p) => ({ ...p, email: undefined })); }} autoComplete="email" disabled={isLoading} />
               </div>
               {errors.email && <span className={styles.fieldError}>{errors.email}</span>}
             </div>
             <div className={styles.inputGroup}>
-              <label className={styles.inputLabel} htmlFor="login-password">Password</label>
+              <label className={styles.inputLabel} htmlFor="user-login-password">Password</label>
               <div className={styles.inputWrapper}>
                 <span className={styles.inputIcon} aria-hidden="true"><FontAwesomeIcon icon={faLock} /></span>
-                <input id="login-password" type={showPassword ? "text" : "password"} className={`${styles.input} ${errors.password ? styles.inputError : ""}`} placeholder="Masukkan password" value={password} onChange={(e) => { setPassword(e.target.value); if (errors.password) setErrors((p) => ({ ...p, password: undefined })); }} autoComplete="current-password" disabled={isLoading} />
+                <input id="user-login-password" type={showPassword ? "text" : "password"} className={`${styles.input} ${errors.password ? styles.inputError : ""}`} placeholder="Masukkan password" value={password} onChange={(e) => { setPassword(e.target.value); if (errors.password) setErrors((p) => ({ ...p, password: undefined })); }} autoComplete="current-password" disabled={isLoading} />
                 <button type="button" className={styles.passwordToggle} onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}>
                   <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
                 </button>
               </div>
               {errors.password && <span className={styles.fieldError}>{errors.password}</span>}
             </div>
-            <button type="submit" className={styles.submitButton} disabled={isLoading} id="login-submit-btn">
+            <button type="submit" className={styles.submitButton} disabled={isLoading} id="user-login-submit-btn">
               {isLoading ? (<><span className={styles.spinner} />Memproses...</>) : "Masuk"}
             </button>
           </form>
           <p className={styles.footerLink}>Belum punya akun?{" "}<Link href="/role-pick">Daftar sekarang</Link></p>
+          <p className={styles.footerLink} style={{ marginTop: '8px' }}>Atau sebagai Caregiver?{" "}<Link href="/auth/caregiver/login">Masuk di sini</Link></p>
         </div>
       </div>
     </main>

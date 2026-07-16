@@ -94,7 +94,15 @@ export async function apiFetch<T = unknown>(
     headers,
   });
 
-  const json = await res.json();
+  let json;
+  const contentType = res.headers.get("content-type");
+  if (contentType && contentType.includes("application/json")) {
+    json = await res.json();
+  } else {
+    // If not JSON, it might be a 404 HTML page or something else
+    const text = await res.text();
+    throw new Error(`API returned non-JSON response (${res.status}): ${text.slice(0, 100)}...`);
+  }
 
   if (!res.ok || json.success === false) {
     const errorMessage =
@@ -110,15 +118,134 @@ export async function apiFetch<T = unknown>(
 export async function register(
   payload: RegisterPayload
 ): Promise<AuthData> {
-  return apiFetch<AuthData>("/auth/register", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+  try {
+    return await apiFetch<AuthData>("/auth/register", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  } catch (error) {
+    if (process.env.NEXT_PUBLIC_USE_MOCK_DATA !== "true") {
+      throw error;
+    }
+    console.warn("API Error, using mock register:", error);
+    return {
+      id: "mock-new-user",
+      name: payload.name,
+      role: payload.role,
+      token: "mock-jwt-token-12345",
+    };
+  }
 }
 
 export async function login(payload: LoginPayload): Promise<AuthData> {
-  return apiFetch<AuthData>("/auth/login", {
-    method: "POST",
-    body: JSON.stringify(payload),
+  try {
+    return await apiFetch<AuthData>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  } catch (error) {
+    if (process.env.NEXT_PUBLIC_USE_MOCK_DATA !== "true") {
+      throw error;
+    }
+    console.warn("API Error, using mock login:", error);
+    const isCaregiver = payload.email.includes("caregiver");
+    return {
+      id: isCaregiver ? "cg-001" : "usr-001",
+      name: isCaregiver ? "Suster Rina" : "Budi Santoso",
+      role: isCaregiver ? "caregiver" : "user",
+      token: "mock-jwt-token-12345",
+    };
+  }
+}
+export async function getBookingDetail(id: string) {
+  const token = localStorage.getItem("token");
+  if (!token) throw new Error("No token found");
+  
+  const res = await fetch(`${BASE_URL}/bookings/${id}`, {
+    headers: { Authorization: `Bearer ${token}` }
   });
+  
+  const json = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json.message || "Failed to fetch booking detail");
+  }
+  return json.data;
+}
+
+export async function updateBookingProgress(id: string, progressData: Record<string, unknown>) {
+  const token = localStorage.getItem("token");
+  if (!token) throw new Error("No token found");
+  
+  const res = await fetch(`${BASE_URL}/bookings/${id}/progress`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(progressData)
+  });
+  
+  const json = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json.message || "Failed to update progress");
+  }
+  return json.data;
+}
+
+export async function getBookingProgress(id: string) {
+  const token = localStorage.getItem("token");
+  if (!token) throw new Error("No token found");
+  
+  const res = await fetch(`${BASE_URL}/bookings/${id}/progress`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  
+  const json = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json.message || "Failed to fetch progress");
+  }
+  return json.data;
+}
+
+export async function submitReport(id: string, reportData: { notes: string; conditionSummary: string }) {
+  const token = localStorage.getItem("token");
+  if (!token) throw new Error("No token found");
+
+  const res = await fetch(`${BASE_URL}/bookings/${id}/report`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(reportData)
+  });
+
+  const json = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json.message || "Failed to submit report");
+  }
+  return json.data;
+}
+
+// ── Generic Data Fetchers (Replacing Mock Data) ──
+import type { MockUser, MockPatient, MockBooking, MockCaregiver } from "./mockData";
+
+export async function fetchProfile(): Promise<MockUser> {
+  return await apiFetch<MockUser>("/users/profile");
+}
+
+export async function fetchCaregiverProfile(): Promise<any> {
+  return await apiFetch<any>("/caregivers/me");
+}
+
+export async function fetchPatients(): Promise<MockPatient[]> {
+  return await apiFetch<MockPatient[]>("/patients");
+}
+
+export async function fetchBookings(): Promise<MockBooking[]> {
+  return await apiFetch<MockBooking[]>("/bookings");
+}
+
+export async function fetchCaregivers(): Promise<MockCaregiver[]> {
+  return await apiFetch<MockCaregiver[]>("/caregivers");
 }
