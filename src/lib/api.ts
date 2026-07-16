@@ -234,6 +234,10 @@ export async function fetchProfile(): Promise<MockUser> {
   return await apiFetch<MockUser>("/users/profile");
 }
 
+export async function fetchCaregiverProfile(): Promise<any> {
+  return await apiFetch<any>("/caregivers/me");
+}
+
 export async function fetchPatients(): Promise<MockPatient[]> {
   return await apiFetch<MockPatient[]>("/patients");
 }

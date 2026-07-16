@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { 
@@ -13,13 +14,39 @@ import {
   faCircleQuestion,
   faRightFromBracket
 } from "@fortawesome/free-solid-svg-icons";
-import { clearAuth } from "@/lib/api";
-import { MOCK_CAREGIVERS } from "@/lib/mockData";
+import { clearAuth, fetchCaregiverProfile, fetchBookings } from "@/lib/api";
 import styles from "./profile.module.css";
 
 export default function CaregiverProfilePage() {
   const router = useRouter();
-  const caregiver = MOCK_CAREGIVERS[0];
+  const [profile, setProfile] = useState<any>(null);
+  const [completedCount, setCompletedCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [profileData, bookingsData] = await Promise.all([
+          fetchCaregiverProfile().catch(() => null),
+          fetchBookings().catch(() => [])
+        ]);
+        
+        if (profileData) {
+          setProfile(profileData);
+        }
+        
+        if (bookingsData) {
+          setCompletedCount(bookingsData.filter((b: any) => b.status === "completed" || b.status === "reported").length);
+        }
+      } catch (err) {
+        console.error("Failed to load profile data", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadData();
+  }, []);
 
   const handleLogout = () => {
     clearAuth();
@@ -41,8 +68,8 @@ export default function CaregiverProfilePage() {
           <div className={styles.avatarLarge}>
             <FontAwesomeIcon icon={faUserCircle} />
           </div>
-          <h2 className={styles.name}>{caregiver.name}</h2>
-          <p className={styles.email}>{caregiver.email}</p>
+          <h2 className={styles.name}>{loading ? "Memuat..." : (profile?.name || "Suster")}</h2>
+          <p className={styles.email}>{loading ? "-" : (profile?.email || "caregiver@kitajaga.com")}</p>
           
           <div className={styles.statsRow}>
             <div className={styles.statItem}>
@@ -52,7 +79,7 @@ export default function CaregiverProfilePage() {
             </div>
             <div className={styles.statDivider} />
             <div className={styles.statItem}>
-              <span className={styles.statValue}>128</span>
+              <span className={styles.statValue}>{loading ? "-" : completedCount}</span>
               <span className={styles.statLabel}>Pesanan Selesai</span>
             </div>
           </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faHouse } from "@fortawesome/free-solid-svg-icons/faHouse";
@@ -15,6 +15,7 @@ import { faCircleCheck } from "@fortawesome/free-solid-svg-icons/faCircleCheck";
 import { faHeartPulse } from "@fortawesome/free-solid-svg-icons/faHeartPulse";
 import { faShieldHeart } from "@fortawesome/free-solid-svg-icons/faShieldHeart";
 import styles from "./home.module.css";
+import { fetchCaregiverProfile, fetchBookings } from "@/lib/api";
 
 const BANNERS = [
   { id: 1, title: "Selamat Datang di Kitajaga!", subtitle: "Platform pendampingan lansia terpercaya", color: "var(--gradient-brand)" },
@@ -31,6 +32,45 @@ const TIPS = [
 export default function CaregiverHomePage() {
   const router = useRouter();
   const [activeBanner, setActiveBanner] = useState(0);
+  const [profile, setProfile] = useState<any>(null);
+  const [activeBooking, setActiveBooking] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [profileData, bookingsData] = await Promise.all([
+          fetchCaregiverProfile().catch(() => null),
+          fetchBookings().catch(() => [])
+        ]);
+        
+        if (profileData) {
+          setProfile(profileData);
+        }
+        
+        if (bookingsData && bookingsData.length > 0) {
+          // Find the first booking that is either matched or in progress
+          const active = bookingsData.find((b: any) => 
+            b.status === "matched" || 
+            b.status === "in_progress" || 
+            b.status === "heading_to_patient" ||
+            b.status === "picked_up_patient" ||
+            b.status === "heading_to_facility" ||
+            b.status === "arrived_registration" ||
+            b.status === "waiting_in_queue" ||
+            b.status === "in_consultation" ||
+            b.status === "heading_back"
+          );
+          setActiveBooking(active || bookingsData[0]);
+        }
+      } catch (err) {
+        console.error("Failed to load dashboard data", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
 
   return (
     <div className={styles.pageWrapper}>
@@ -43,7 +83,7 @@ export default function CaregiverHomePage() {
             </div>
             <div className={styles.greeting}>
               <span className={styles.greetingLabel}>Halo, Caregiver</span>
-              <h1 className={styles.greetingName}>Suster Rina</h1>
+              <h1 className={styles.greetingName}>{loading ? "Memuat..." : (profile?.name || "Suster")}</h1>
             </div>
           </div>
           <button className={styles.notifButton} aria-label="Notifikasi" id="home-notif-btn">
@@ -77,28 +117,39 @@ export default function CaregiverHomePage() {
               Lihat Semua <FontAwesomeIcon icon={faChevronRight} />
             </button>
           </div>
-          <div className={styles.bookingCard}>
-            <div className={styles.bookingTop}>
-              <div className={styles.bookingAvatar}>
-                <FontAwesomeIcon icon={faUserCircle} />
+          
+          {loading ? (
+             <div className={styles.bookingCard} style={{ opacity: 0.5 }}>Memuat...</div>
+          ) : activeBooking ? (
+            <div className={styles.bookingCard}>
+              <div className={styles.bookingTop}>
+                <div className={styles.bookingAvatar}>
+                  <FontAwesomeIcon icon={faUserCircle} />
+                </div>
+                <div className={styles.bookingInfo}>
+                  <span className={styles.bookingName}>{activeBooking.patient?.name || "Pasien"}</span>
+                  <span className={styles.bookingDetail}>
+                    {activeBooking.facility?.name || activeBooking.facilityName || "Fasilitas"} · {new Date(activeBooking.scheduledAt || Date.now()).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                  <span className={styles.bookingStatus}>
+                    <FontAwesomeIcon icon={faCircleCheck} /> {activeBooking.status.replace(/_/g, " ")}
+                  </span>
+                </div>
               </div>
-              <div className={styles.bookingInfo}>
-                <span className={styles.bookingName}>Budi Santoso</span>
-                <span className={styles.bookingDetail}>RSCM Jakarta · Hari ini, 09:00</span>
-                <span className={styles.bookingStatus}>
-                  <FontAwesomeIcon icon={faCircleCheck} /> Terkonfirmasi
-                </span>
+              <div className={styles.bookingActions}>
+                <button className={styles.chatButton} onClick={() => router.push(`/caregiver/schedule/${activeBooking.id}/chat`)} id="home-chat-btn">
+                  <FontAwesomeIcon icon={faComment} /> Chat
+                </button>
+                <button className={styles.detailButton} onClick={() => router.push(`/caregiver/schedule/${activeBooking.id}`)} id="home-detail-btn">
+                  Detail <FontAwesomeIcon icon={faChevronRight} />
+                </button>
               </div>
             </div>
-            <div className={styles.bookingActions}>
-              <button className={styles.chatButton} id="home-chat-btn">
-                <FontAwesomeIcon icon={faComment} /> Chat
-              </button>
-              <button className={styles.detailButton} id="home-detail-btn">
-                Detail <FontAwesomeIcon icon={faChevronRight} />
-              </button>
+          ) : (
+            <div className={styles.bookingCard} style={{ opacity: 0.5 }}>
+              Belum ada pesanan aktif.
             </div>
-          </div>
+          )}
         </section>
 
         {/* ── Tips & Info ── */}

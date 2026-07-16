@@ -105,14 +105,14 @@ export default function DetailSchedulePage() {
           </h2>
           <div className={styles.infoRow}>
             <span className={styles.infoLabel}>Nama</span>
-            <span className={styles.infoValue}>{booking.patient.name}</span>
+            <span className={styles.infoValue}>{booking.patient?.name || "-"}</span>
           </div>
           <div className={styles.infoRow}>
             <span className={styles.infoLabel}>Alamat Penjemputan</span>
-            <span className={styles.infoValue}>{booking.patient.address}</span>
+            <span className={styles.infoValue}>{booking.patient?.address || "-"}</span>
           </div>
           
-          {booking.patient.allergies && booking.patient.allergies.length > 0 && (
+          {booking.patient?.allergies && booking.patient.allergies.length > 0 && (
             <div className={styles.alertBox}>
               <FontAwesomeIcon icon={faExclamationTriangle} className={styles.alertIcon} />
               <div>
@@ -121,7 +121,7 @@ export default function DetailSchedulePage() {
             </div>
           )}
           
-          {booking.patient.patientNote && (
+          {booking.patient?.patientNote && (
             <div className={styles.infoRowVertical}>
               <span className={styles.infoLabel}>
                 <FontAwesomeIcon icon={faNotesMedical} className={styles.smallIcon} /> Catatan Khusus
@@ -138,13 +138,13 @@ export default function DetailSchedulePage() {
             Tujuan (Fasilitas Kesehatan)
           </h2>
           <div className={styles.infoRowVertical}>
-            <span className={styles.infoValueLarge}>{booking.facility.name}</span>
-            <span className={styles.infoValue}>{booking.facility.address}</span>
+            <span className={styles.infoValueLarge}>{booking.facility?.name || booking.facilityName || "-"}</span>
+            <span className={styles.infoValue}>{booking.facility?.address || booking.facilityAddress || "-"}</span>
           </div>
         </div>
 
         {/* Emergency Contact */}
-        {booking.patient.emergencyContact && (
+        {booking.patient?.emergencyContact && (
           <div className={styles.card}>
             <h2 className={styles.cardTitle}>
               <FontAwesomeIcon icon={faPhoneAlt} className={styles.icon} />
