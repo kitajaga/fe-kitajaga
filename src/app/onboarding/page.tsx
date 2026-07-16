@@ -57,14 +57,16 @@ export default function OnboardingPage() {
 
   const handleNext = useCallback(() => {
     if (isLastSlide) {
-      router.push("/role-pick");
+      localStorage.setItem("onboarding_complete", "true");
+      router.push("/auth/user/login");
     } else {
       setActiveSlide((prev) => prev + 1);
     }
   }, [isLastSlide, router]);
 
   const handleSkip = useCallback(() => {
-    router.push("/role-pick");
+    localStorage.setItem("onboarding_complete", "true");
+    router.push("/auth/user/login");
   }, [router]);
 
   // ── Touch handlers ──

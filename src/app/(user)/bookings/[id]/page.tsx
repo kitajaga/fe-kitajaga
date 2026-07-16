@@ -1,0 +1,323 @@
+"use client";
+
+import { use, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowLeft } from "@fortawesome/free-solid-svg-icons/faArrowLeft";
+import { faUserCircle } from "@fortawesome/free-solid-svg-icons/faUserCircle";
+import { faStar } from "@fortawesome/free-solid-svg-icons/faStar";
+import { faLocationDot } from "@fortawesome/free-solid-svg-icons/faLocationDot";
+import { faSpinner } from "@fortawesome/free-solid-svg-icons/faSpinner";
+import { faCircleCheck } from "@fortawesome/free-solid-svg-icons/faCircleCheck";
+import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons/faTriangleExclamation";
+import { faComments } from "@fortawesome/free-solid-svg-icons/faComments";
+import { faCreditCard } from "@fortawesome/free-solid-svg-icons/faCreditCard";
+import { faHospital } from "@fortawesome/free-solid-svg-icons/faHospital";
+import { faFileLines } from "@fortawesome/free-solid-svg-icons/faFileLines";
+import { faUserInjured } from "@fortawesome/free-solid-svg-icons/faUserInjured";
+import { faRotateRight } from "@fortawesome/free-solid-svg-icons/faRotateRight";
+import {
+  getBookingById,
+  getPatientById,
+  getCaregiverById,
+  getProgressForBooking,
+  getReportForBooking,
+  BOOKING_STATUS_LABELS,
+  PROGRESS_LABELS,
+} from "@/lib/mockData";
+import type { ProgressStatus } from "@/lib/mockData";
+import styles from "../bookings.module.css";
+
+const PROGRESS_ORDER: ProgressStatus[] = [
+  "heading_to_patient",
+  "picked_up_patient",
+  "heading_to_facility",
+  "arrived_registration",
+  "waiting_in_queue",
+  "in_consultation",
+  "heading_back",
+  "completed",
+];
+
+export default function BookingDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const router = useRouter();
+  const [rating, setRating] = useState(0);
+  const [review, setReview] = useState("");
+
+  const booking = getBookingById(id);
+  const patient = booking ? getPatientById(booking.patientId) : null;
+  const caregiver = booking?.caregiverId ? getCaregiverById(booking.caregiverId) : null;
+  const progressList = booking ? getProgressForBooking(booking.id) : [];
+  const report = booking ? getReportForBooking(booking.id) : null;
+
+  const progressStatuses = new Set(progressList.map((p) => p.status));
+  const latestProgress = progressList[progressList.length - 1];
+  const latestIdx = latestProgress ? PROGRESS_ORDER.indexOf(latestProgress.status) : -1;
+
+  const handleSubmitRating = useCallback(async () => {
+    // POST /bookings/:id/rate
+    await new Promise((r) => setTimeout(r, 800));
+    router.push("/dashboard");
+  }, [router]);
+
+  if (!booking) {
+    return (
+      <>
+        <div className={styles.pageHeader}>
+          <button className={styles.backButton} onClick={() => router.push("/dashboard")} aria-label="Kembali">
+            <FontAwesomeIcon icon={faArrowLeft} />
+          </button>
+          <h1 className={styles.pageTitle}>Booking Tidak Ditemukan</h1>
+        </div>
+      </>
+    );
+  }
+
+  const getStatusBanner = () => {
+    switch (booking.status) {
+      case "pending_matching":
+      case "rescheduling":
+        return styles.statusBannerPending;
+      case "in_progress":
+      case "matched":
+      case "paid":
+      case "scheduled":
+        return styles.statusBannerActive;
+      case "completed":
+      case "reported":
+        return styles.statusBannerComplete;
+      default:
+        return styles.statusBannerError;
+    }
+  };
+
+  const getStatusBannerIcon = () => {
+    switch (booking.status) {
+      case "pending_matching":
+      case "rescheduling":
+        return faSpinner;
+      case "in_progress":
+        return faLocationDot;
+      case "completed":
+      case "reported":
+        return faCircleCheck;
+      default:
+        return faTriangleExclamation;
+    }
+  };
+
+  return (
+    <>
+      {/* ── Header ── */}
+      <div className={styles.pageHeader}>
+        <button className={styles.backButton} onClick={() => router.push("/dashboard")} aria-label="Kembali" id="booking-detail-back">
+          <FontAwesomeIcon icon={faArrowLeft} />
+        </button>
+        <h1 className={styles.pageTitle}>Detail Booking</h1>
+      </div>
+
+      <div className={styles.detailContainer}>
+        {/* ── Status Banner ── */}
+        <div className={`${styles.statusBanner} ${getStatusBanner()}`}>
+          <div className={styles.statusBannerIcon}>
+            <FontAwesomeIcon icon={getStatusBannerIcon()} />
+          </div>
+          <div className={styles.statusBannerText}>
+            <span className={styles.statusBannerTitle}>{BOOKING_STATUS_LABELS[booking.status]}</span>
+            <span className={styles.statusBannerSub}>
+              {booking.bookingType === "immediate" ? "Layanan segera" : `Dijadwalkan ${booking.scheduledAt ? new Date(booking.scheduledAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : ""}`}
+            </span>
+          </div>
+        </div>
+
+        {/* ── Searching Animation (pending_matching / rescheduling) ── */}
+        {(booking.status === "pending_matching" || booking.status === "rescheduling") && (
+          <div className={styles.searchingAnimation}>
+            <div className={styles.searchingDots}>
+              <div className={styles.searchingDot} />
+              <div className={styles.searchingDot} />
+              <div className={styles.searchingDot} />
+            </div>
+            <p className={styles.searchingText}>
+              {booking.status === "rescheduling"
+                ? "Mencari caregiver pengganti untuk Anda..."
+                : "Mencari caregiver terbaik berdasarkan lokasi dan rating..."}
+            </p>
+          </div>
+        )}
+
+        {/* ── Caregiver Profile (matched+) ── */}
+        {caregiver && booking.status !== "pending_matching" && (
+          <div className={styles.caregiverCard}>
+            <div className={styles.caregiverTop}>
+              <div className={styles.caregiverAvatar}>
+                <FontAwesomeIcon icon={faUserCircle} />
+              </div>
+              <div className={styles.caregiverInfo}>
+                <span className={styles.caregiverName}>{caregiver.name}</span>
+                <div className={styles.caregiverMeta}>
+                  <span className={styles.caregiverRating}>
+                    <FontAwesomeIcon icon={faStar} /> {caregiver.rating}
+                  </span>
+                  <span>{caregiver.totalReviews} ulasan</span>
+                </div>
+              </div>
+            </div>
+            {booking.status === "in_progress" && (
+              <div className={styles.actionRow}>
+                <button className={styles.primaryAction} id="booking-chat-btn">
+                  <FontAwesomeIcon icon={faComments} /> Chat
+                </button>
+                <button className={styles.secondaryAction} id="booking-reschedule-btn">
+                  <FontAwesomeIcon icon={faRotateRight} /> Ganti
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Payment Button (matched) ── */}
+        {booking.status === "matched" && (
+          <button className={styles.primaryAction} style={{ padding: "16px" }} id="booking-pay-btn">
+            <FontAwesomeIcon icon={faCreditCard} /> Bayar Rp{booking.payment.amount.toLocaleString("id-ID")}
+          </button>
+        )}
+
+        {/* ── Progress Timeline (in_progress) ── */}
+        {booking.status === "in_progress" && (
+          <div className={styles.infoCard}>
+            <h3 className={styles.infoCardTitle}>
+              <span className={styles.infoCardTitleIcon}><FontAwesomeIcon icon={faLocationDot} /></span>
+              Progress Layanan
+            </h3>
+            <div className={styles.timeline}>
+              {PROGRESS_ORDER.map((status, i) => {
+                const isDone = i <= latestIdx;
+                const isCurrent = i === latestIdx;
+                const progressEntry = progressList.find((p) => p.status === status);
+                return (
+                  <div
+                    key={status}
+                    className={`${styles.timelineItem} ${isDone ? styles.timelineItemDone : ""}`}
+                  >
+                    <div className={`${styles.timelineDot} ${isDone ? styles.timelineDotDone : ""} ${isCurrent ? styles.timelineDotCurrent : ""}`} />
+                    <div className={styles.timelineContent}>
+                      <span className={`${styles.timelineLabel} ${!isDone && !isCurrent ? styles.timelineLabelMuted : ""}`}>
+                        {PROGRESS_LABELS[status]}
+                      </span>
+                      {progressEntry && (
+                        <>
+                          <span className={styles.timelineTime}>
+                            {new Date(progressEntry.createdAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                          {progressEntry.note && <span className={styles.timelineNote}>{progressEntry.note}</span>}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── Facility Info ── */}
+        <div className={styles.infoCard}>
+          <h3 className={styles.infoCardTitle}>
+            <span className={styles.infoCardTitleIcon}><FontAwesomeIcon icon={faHospital} /></span>
+            Fasilitas Tujuan
+          </h3>
+          <div className={styles.infoRow}>
+            <span className={styles.infoLabel}>Nama</span>
+            <span className={styles.infoValue}>{booking.facilityName}</span>
+          </div>
+          <div className={styles.infoRow}>
+            <span className={styles.infoLabel}>Alamat</span>
+            <span className={styles.infoValue}>{booking.facilityAddress}</span>
+          </div>
+        </div>
+
+        {/* ── Patient Info ── */}
+        {patient && (
+          <div className={styles.infoCard}>
+            <h3 className={styles.infoCardTitle}>
+              <span className={styles.infoCardTitleIcon}><FontAwesomeIcon icon={faUserInjured} /></span>
+              Pasien
+            </h3>
+            <div className={styles.infoRow}>
+              <span className={styles.infoLabel}>Nama</span>
+              <span className={styles.infoValue}>{patient.name}</span>
+            </div>
+            <div className={styles.infoRow}>
+              <span className={styles.infoLabel}>Alamat</span>
+              <span className={styles.infoValue}>{patient.address}</span>
+            </div>
+          </div>
+        )}
+
+        {/* ── Report (completed) ── */}
+        {(booking.status === "completed" || booking.status === "reported") && report && (
+          <div className={styles.reportCard}>
+            <h3 className={styles.infoCardTitle}>
+              <span className={styles.infoCardTitleIcon}><FontAwesomeIcon icon={faFileLines} /></span>
+              Laporan Caregiver
+            </h3>
+            <p className={styles.reportText}>{report.conditionSummary}</p>
+            <p className={styles.reportText}>{report.notes}</p>
+          </div>
+        )}
+
+        {/* ── Rating Form (completed, not yet rated) ── */}
+        {booking.status === "completed" && (
+          <div className={styles.ratingForm}>
+            <h3 className={styles.infoCardTitle}>Beri Rating</h3>
+            <div className={styles.starsRow}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  className={`${styles.starButton} ${star <= rating ? styles.starActive : ""}`}
+                  onClick={() => setRating(star)}
+                  aria-label={`${star} bintang`}
+                  id={`rating-star-${star}`}
+                >
+                  <FontAwesomeIcon icon={faStar} />
+                </button>
+              ))}
+            </div>
+            <textarea
+              className={styles.ratingTextarea}
+              placeholder="Tulis ulasan Anda (opsional)..."
+              value={review}
+              onChange={(e) => setReview(e.target.value)}
+            />
+            <button
+              className={styles.submitRatingButton}
+              disabled={rating === 0}
+              onClick={handleSubmitRating}
+              id="submit-rating-btn"
+            >
+              Kirim Rating
+            </button>
+          </div>
+        )}
+
+        {/* ── Payment Info ── */}
+        <div className={styles.infoCard}>
+          <h3 className={styles.infoCardTitle}>
+            <span className={styles.infoCardTitleIcon}><FontAwesomeIcon icon={faCreditCard} /></span>
+            Pembayaran
+          </h3>
+          <div className={styles.infoRow}>
+            <span className={styles.infoLabel}>Total</span>
+            <span className={styles.infoValue}>Rp{booking.payment.amount.toLocaleString("id-ID")}</span>
+          </div>
+          <div className={styles.infoRow}>
+            <span className={styles.infoLabel}>Status</span>
+            <span className={styles.infoValue} style={{ textTransform: "capitalize" }}>{booking.payment.status}</span>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}

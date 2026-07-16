@@ -5,29 +5,22 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faHouse, faCalendarDays, faComments, faUserCircle, faChevronRight, faCircle } from "@fortawesome/free-solid-svg-icons";
 import styles from "./chat-list.module.css";
 
-const MOCK_CHATS = [
-  {
-    id: "booking-uuid-1",
-    patientName: "Budi Santoso",
-    lastMessage: "Ya, saya tiba sekitar 10 menit lagi.",
-    time: "20.45",
+import { MOCK_BOOKINGS, MOCK_CHAT_MESSAGES, getPatientById } from "@/lib/mockData";
+
+// Calculate recent chats based on bookings and messages
+const MOCK_CHATS = MOCK_BOOKINGS.filter(b => b.caregiverId === "cg-002" || b.caregiverId === "cg-001").map(booking => {
+  const patient = getPatientById(booking.patientId);
+  const messages = MOCK_CHAT_MESSAGES.filter(m => m.bookingId === booking.id);
+  const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
+  
+  return {
+    id: booking.id,
+    patientName: patient?.name || "Pasien",
+    lastMessage: lastMsg?.message || "Belum ada pesan",
+    time: lastMsg ? new Date(lastMsg.sentAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "",
     unread: 0,
-  },
-  {
-    id: "booking-uuid-2",
-    patientName: "Keluarga Hendri Pratama",
-    lastMessage: "Apakah suster bisa datang lebih awal?",
-    time: "Kemarin",
-    unread: 2,
-  },
-  {
-    id: "booking-uuid-3",
-    patientName: "Ibu Siti Aminah",
-    lastMessage: "Terima kasih banyak atas bantuannya.",
-    time: "12 Jul",
-    unread: 0,
-  }
-];
+  };
+});
 
 export default function ChatListPage() {
   const router = useRouter();

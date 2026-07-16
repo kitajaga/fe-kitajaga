@@ -24,7 +24,7 @@ interface FormErrors {
   confirmPassword?: string;
 }
 
-export default function CaregiverRegisterPage() {
+export default function UserRegisterPage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -63,9 +63,9 @@ export default function CaregiverRegisterPage() {
     if (!validate()) return;
     setIsLoading(true);
     try {
-      const data = await register({ name: name.trim(), email: email.trim(), phone: phone.replace(/[\s-]/g, ""), password, role: "caregiver" });
+      const data = await register({ name: name.trim(), email: email.trim(), phone: phone.replace(/[\s-]/g, ""), password, role: "user" });
       saveAuth(data);
-      router.push("/caregiver");
+      router.push("/dashboard");
     } catch (err) {
       setApiError(err instanceof Error ? err.message : "Registrasi gagal. Silakan coba lagi.");
     } finally {
@@ -74,10 +74,10 @@ export default function CaregiverRegisterPage() {
   }, [name, email, phone, password, validate, router]);
 
   return (
-    <main id="caregiver-register" className={styles.authContainer}>
+    <main id="user-register" className={styles.authContainer}>
       <div className={styles.brandBar}>
         <div className={styles.brandBarOrbs} aria-hidden="true" />
-        <button className={styles.backButton} onClick={() => router.push("/role-pick")} aria-label="Kembali" id="register-back-btn">
+        <button className={styles.backButton} onClick={() => router.push("/role-pick")} aria-label="Kembali" id="user-register-back-btn">
           <FontAwesomeIcon icon={faArrowLeft} />
         </button>
         <Image src="/icons/kitajaga-logo.png" alt="Kitajaga" width={48} height={48} className={styles.brandLogo} priority />
@@ -86,8 +86,8 @@ export default function CaregiverRegisterPage() {
       <div className={styles.formSection}>
         <div className={styles.formWrapper}>
           <div className={styles.formHeader}>
-            <h1 className={styles.formTitle}>Daftar Caregiver</h1>
-            <p className={styles.formSubtitle}>Buat akun caregiver dan mulai membantu keluarga yang membutuhkan</p>
+            <h1 className={styles.formTitle}>Daftar Keluarga</h1>
+            <p className={styles.formSubtitle}>Buat akun untuk menemukan caregiver terpercaya bagi orang tua Anda</p>
           </div>
           {apiError && (
             <div className={styles.errorBanner} role="alert">
@@ -97,34 +97,34 @@ export default function CaregiverRegisterPage() {
           )}
           <form className={styles.form} onSubmit={handleSubmit} noValidate>
             <div className={styles.inputGroup}>
-              <label className={styles.inputLabel} htmlFor="register-name">Nama Lengkap</label>
+              <label className={styles.inputLabel} htmlFor="user-register-name">Nama Lengkap</label>
               <div className={styles.inputWrapper}>
                 <span className={styles.inputIcon} aria-hidden="true"><FontAwesomeIcon icon={faUser} /></span>
-                <input id="register-name" type="text" className={`${styles.input} ${errors.name ? styles.inputError : ""}`} placeholder="Masukkan nama lengkap" value={name} onChange={(e) => { setName(e.target.value); if (errors.name) clearErr("name"); }} autoComplete="name" disabled={isLoading} />
+                <input id="user-register-name" type="text" className={`${styles.input} ${errors.name ? styles.inputError : ""}`} placeholder="Masukkan nama lengkap" value={name} onChange={(e) => { setName(e.target.value); if (errors.name) clearErr("name"); }} autoComplete="name" disabled={isLoading} />
               </div>
               {errors.name && <span className={styles.fieldError}>{errors.name}</span>}
             </div>
             <div className={styles.inputGroup}>
-              <label className={styles.inputLabel} htmlFor="register-email">Email</label>
+              <label className={styles.inputLabel} htmlFor="user-register-email">Email</label>
               <div className={styles.inputWrapper}>
                 <span className={styles.inputIcon} aria-hidden="true"><FontAwesomeIcon icon={faEnvelope} /></span>
-                <input id="register-email" type="email" className={`${styles.input} ${errors.email ? styles.inputError : ""}`} placeholder="nama@email.com" value={email} onChange={(e) => { setEmail(e.target.value); if (errors.email) clearErr("email"); }} autoComplete="email" disabled={isLoading} />
+                <input id="user-register-email" type="email" className={`${styles.input} ${errors.email ? styles.inputError : ""}`} placeholder="nama@email.com" value={email} onChange={(e) => { setEmail(e.target.value); if (errors.email) clearErr("email"); }} autoComplete="email" disabled={isLoading} />
               </div>
               {errors.email && <span className={styles.fieldError}>{errors.email}</span>}
             </div>
             <div className={styles.inputGroup}>
-              <label className={styles.inputLabel} htmlFor="register-phone">Nomor Telepon</label>
+              <label className={styles.inputLabel} htmlFor="user-register-phone">Nomor Telepon</label>
               <div className={styles.inputWrapper}>
                 <span className={styles.inputIcon} aria-hidden="true"><FontAwesomeIcon icon={faPhone} /></span>
-                <input id="register-phone" type="tel" className={`${styles.input} ${errors.phone ? styles.inputError : ""}`} placeholder="081234567890" value={phone} onChange={(e) => { setPhone(e.target.value); if (errors.phone) clearErr("phone"); }} autoComplete="tel" disabled={isLoading} />
+                <input id="user-register-phone" type="tel" className={`${styles.input} ${errors.phone ? styles.inputError : ""}`} placeholder="081234567890" value={phone} onChange={(e) => { setPhone(e.target.value); if (errors.phone) clearErr("phone"); }} autoComplete="tel" disabled={isLoading} />
               </div>
               {errors.phone && <span className={styles.fieldError}>{errors.phone}</span>}
             </div>
             <div className={styles.inputGroup}>
-              <label className={styles.inputLabel} htmlFor="register-password">Password</label>
+              <label className={styles.inputLabel} htmlFor="user-register-password">Password</label>
               <div className={styles.inputWrapper}>
                 <span className={styles.inputIcon} aria-hidden="true"><FontAwesomeIcon icon={faLock} /></span>
-                <input id="register-password" type={showPassword ? "text" : "password"} className={`${styles.input} ${errors.password ? styles.inputError : ""}`} placeholder="Minimal 6 karakter" value={password} onChange={(e) => { setPassword(e.target.value); if (errors.password) clearErr("password"); }} autoComplete="new-password" disabled={isLoading} />
+                <input id="user-register-password" type={showPassword ? "text" : "password"} className={`${styles.input} ${errors.password ? styles.inputError : ""}`} placeholder="Minimal 6 karakter" value={password} onChange={(e) => { setPassword(e.target.value); if (errors.password) clearErr("password"); }} autoComplete="new-password" disabled={isLoading} />
                 <button type="button" className={styles.passwordToggle} onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}>
                   <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
                 </button>
@@ -132,21 +132,21 @@ export default function CaregiverRegisterPage() {
               {errors.password && <span className={styles.fieldError}>{errors.password}</span>}
             </div>
             <div className={styles.inputGroup}>
-              <label className={styles.inputLabel} htmlFor="register-confirm">Konfirmasi Password</label>
+              <label className={styles.inputLabel} htmlFor="user-register-confirm">Konfirmasi Password</label>
               <div className={styles.inputWrapper}>
                 <span className={styles.inputIcon} aria-hidden="true"><FontAwesomeIcon icon={faLock} /></span>
-                <input id="register-confirm" type={showConfirm ? "text" : "password"} className={`${styles.input} ${errors.confirmPassword ? styles.inputError : ""}`} placeholder="Ketik ulang password" value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); if (errors.confirmPassword) clearErr("confirmPassword"); }} autoComplete="new-password" disabled={isLoading} />
+                <input id="user-register-confirm" type={showConfirm ? "text" : "password"} className={`${styles.input} ${errors.confirmPassword ? styles.inputError : ""}`} placeholder="Ketik ulang password" value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); if (errors.confirmPassword) clearErr("confirmPassword"); }} autoComplete="new-password" disabled={isLoading} />
                 <button type="button" className={styles.passwordToggle} onClick={() => setShowConfirm(!showConfirm)} aria-label={showConfirm ? "Sembunyikan password" : "Tampilkan password"}>
                   <FontAwesomeIcon icon={showConfirm ? faEyeSlash : faEye} />
                 </button>
               </div>
               {errors.confirmPassword && <span className={styles.fieldError}>{errors.confirmPassword}</span>}
             </div>
-            <button type="submit" className={styles.submitButton} disabled={isLoading} id="register-submit-btn">
+            <button type="submit" className={styles.submitButton} disabled={isLoading} id="user-register-submit-btn">
               {isLoading ? (<><span className={styles.spinner} />Memproses...</>) : "Buat Akun"}
             </button>
           </form>
-          <p className={styles.footerLink}>Sudah punya akun?{" "}<Link href="/auth/caregiver/login">Masuk di sini</Link></p>
+          <p className={styles.footerLink}>Sudah punya akun?{" "}<Link href="/auth/user/login">Masuk di sini</Link></p>
         </div>
       </div>
     </main>
