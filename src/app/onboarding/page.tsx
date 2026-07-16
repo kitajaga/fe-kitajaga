@@ -3,6 +3,9 @@
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowRight } from "@fortawesome/free-solid-svg-icons/faArrowRight";
+import { faRocket } from "@fortawesome/free-solid-svg-icons/faRocket";
 import styles from "./onboarding.module.css";
 
 interface Slide {
@@ -189,7 +192,7 @@ export default function OnboardingPage() {
           >
             {isLastSlide ? "Mulai Sekarang" : "Selanjutnya"}
             <span className={styles.arrowIcon} aria-hidden="true">
-              {isLastSlide ? "🚀" : "→"}
+              <FontAwesomeIcon icon={isLastSlide ? faRocket : faArrowRight} />
             </span>
           </button>
         </div>

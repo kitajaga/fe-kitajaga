@@ -1,6 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faHandSparkles } from "@fortawesome/free-solid-svg-icons/faHandSparkles";
+import { faUsers } from "@fortawesome/free-solid-svg-icons/faUsers";
+import { faUserNurse } from "@fortawesome/free-solid-svg-icons/faUserNurse";
+import { faChevronRight } from "@fortawesome/free-solid-svg-icons/faChevronRight";
 import styles from "./role-pick.module.css";
 
 export default function RolePickPage() {
@@ -11,7 +16,7 @@ export default function RolePickPage() {
       {/* Header */}
       <div className={styles.header}>
         <div className={styles.headerIcon}>
-          <span role="img" aria-hidden="true">👋</span>
+          <FontAwesomeIcon icon={faHandSparkles} style={{ color: "#FFF" }} />
         </div>
         <h1 className={styles.headerTitle}>Pilih Peran Anda</h1>
         <p className={styles.headerSubtitle}>
@@ -28,7 +33,7 @@ export default function RolePickPage() {
           id="role-pick-user"
         >
           <div className={`${styles.cardIcon} ${styles.cardIconUser}`}>
-            <span role="img" aria-hidden="true">👨‍👩‍👧</span>
+            <FontAwesomeIcon icon={faUsers} style={{ color: "var(--color-primary)" }} />
           </div>
           <div className={styles.cardText}>
             <span className={styles.cardTitle}>Keluarga Pasien</span>
@@ -36,7 +41,7 @@ export default function RolePickPage() {
               Cari caregiver terpercaya untuk mendampingi orang tua Anda
             </span>
           </div>
-          <span className={styles.cardArrow} aria-hidden="true">→</span>
+          <FontAwesomeIcon icon={faChevronRight} className={styles.cardArrow} />
         </button>
 
         {/* Caregiver Card */}
@@ -46,7 +51,7 @@ export default function RolePickPage() {
           id="role-pick-caregiver"
         >
           <div className={`${styles.cardIcon} ${styles.cardIconCaregiver}`}>
-            <span role="img" aria-hidden="true">🩺</span>
+            <FontAwesomeIcon icon={faUserNurse} style={{ color: "#16A34A" }} />
           </div>
           <div className={styles.cardText}>
             <span className={styles.cardTitle}>Caregiver</span>
@@ -54,7 +59,7 @@ export default function RolePickPage() {
               Bergabung sebagai caregiver dan mulai membantu keluarga
             </span>
           </div>
-          <span className={styles.cardArrow} aria-hidden="true">→</span>
+          <FontAwesomeIcon icon={faChevronRight} className={styles.cardArrow} />
         </button>
       </div>
 
