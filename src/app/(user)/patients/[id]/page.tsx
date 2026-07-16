@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons/faArrowLeft";
@@ -10,10 +10,12 @@ import { faNotesMedical } from "@fortawesome/free-solid-svg-icons/faNotesMedical
 import { faPhone } from "@fortawesome/free-solid-svg-icons/faPhone";
 import { faLocationDot } from "@fortawesome/free-solid-svg-icons/faLocationDot";
 import { faCalendarPlus } from "@fortawesome/free-solid-svg-icons/faCalendarPlus";
-import { getPatientById } from "@/lib/mockData";
+import { faSpinner } from "@fortawesome/free-solid-svg-icons/faSpinner";
+import { fetchPatientById } from "@/lib/api";
 import styles from "../patients.module.css";
 
 function calculateAge(dob: string): number {
+  if (!dob) return 0;
   const birth = new Date(dob);
   const today = new Date();
   let age = today.getFullYear() - birth.getFullYear();
@@ -43,9 +45,35 @@ function getRiskLabel(risk: string) {
 export default function PatientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const patient = getPatientById(id);
+  
+  const [patient, setPatient] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  if (!patient) {
+  useEffect(() => {
+    async function load() {
+      try {
+        const data = await fetchPatientById(id);
+        setPatient(data);
+      } catch (err) {
+        console.error("Failed to fetch patient:", err);
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className={styles.detailContainer} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <FontAwesomeIcon icon={faSpinner} spin size="2x" style={{ color: 'var(--color-primary)' }} />
+      </div>
+    );
+  }
+
+  if (error || !patient) {
     return (
       <>
         <div className={styles.pageHeader}>
@@ -91,11 +119,13 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
           </h3>
           <div className={styles.infoRow}>
             <span className={styles.infoLabel}>Tanggal Lahir</span>
-            <span className={styles.infoValue}>{new Date(patient.dateOfBirth).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</span>
+            <span className={styles.infoValue}>
+              {patient.dateOfBirth ? new Date(patient.dateOfBirth).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "—"}
+            </span>
           </div>
           <div className={styles.infoRow}>
             <span className={styles.infoLabel}>Mobilitas</span>
-            <span className={styles.infoValue}>{patient.mobility}</span>
+            <span className={styles.infoValue}>{patient.mobility || patient.mobilityStatus || "—"}</span>
           </div>
         </div>
 
@@ -105,7 +135,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
             <span className={styles.infoCardTitleIcon}><FontAwesomeIcon icon={faLocationDot} /></span>
             Alamat
           </h3>
-          <p className={styles.noteText}>{patient.address}</p>
+          <p className={styles.noteText}>{patient.address || "—"}</p>
         </div>
 
         {/* ── Medis ── */}
@@ -117,15 +147,17 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
           <div className={styles.infoRow}>
             <span className={styles.infoLabel}>Alergi</span>
             <div className={styles.tagList}>
-              {patient.allergies.length > 0
-                ? patient.allergies.map((a) => <span key={a} className={`${styles.tag} ${styles.tagAlert}`}>{a}</span>)
+              {patient.allergies?.length > 0
+                ? patient.allergies.map((a: string) => <span key={a} className={`${styles.tag} ${styles.tagAlert}`}>{a}</span>)
                 : <span className={styles.infoValue}>Tidak ada</span>}
             </div>
           </div>
           <div className={styles.infoRow}>
             <span className={styles.infoLabel}>Obat-obatan</span>
             <div className={styles.tagList}>
-              {patient.medications.map((m) => <span key={m} className={styles.tag}>{m}</span>)}
+              {((patient.medications || patient.currentMedications || []) as string[]).length > 0
+                ? (patient.medications || patient.currentMedications).map((m: string) => <span key={m} className={styles.tag}>{m}</span>)
+                : <span className={styles.infoValue}>Tidak ada</span>}
             </div>
           </div>
         </div>
@@ -136,7 +168,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
             <span className={styles.infoCardTitleIcon}><FontAwesomeIcon icon={faNotesMedical} /></span>
             Catatan Medis
           </h3>
-          <p className={styles.noteText}>{patient.patientNote}</p>
+          <p className={styles.noteText}>{patient.patientNote || patient.notes || "Tidak ada catatan."}</p>
         </div>
 
         {/* ── Emergency Contact ── */}
@@ -145,14 +177,20 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
             <span className={styles.infoCardTitleIcon}><FontAwesomeIcon icon={faPhone} /></span>
             Kontak Darurat
           </h3>
-          <div className={styles.infoRow}>
-            <span className={styles.infoLabel}>Nama</span>
-            <span className={styles.infoValue}>{patient.emergencyContact.name}</span>
-          </div>
-          <div className={styles.infoRow}>
-            <span className={styles.infoLabel}>Telepon</span>
-            <span className={styles.infoValue}>{patient.emergencyContact.phone}</span>
-          </div>
+          {patient.emergencyContact ? (
+            <>
+              <div className={styles.infoRow}>
+                <span className={styles.infoLabel}>Nama</span>
+                <span className={styles.infoValue}>{patient.emergencyContact.name}</span>
+              </div>
+              <div className={styles.infoRow}>
+                <span className={styles.infoLabel}>Telepon</span>
+                <span className={styles.infoValue}>{patient.emergencyContact.phone}</span>
+              </div>
+            </>
+          ) : (
+             <span className={styles.infoValue}>Tidak ada</span>
+          )}
         </div>
 
         {/* ── Book Now ── */}

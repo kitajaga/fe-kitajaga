@@ -49,33 +49,44 @@ export default function PatientsListPage() {
           <FontAwesomeIcon icon={faArrowLeft} />
         </button>
         <h1 className={styles.pageTitle}>Daftar Pasien</h1>
-        <button className={styles.addButton} onClick={() => router.push("/patients/new")} aria-label="Tambah Pasien" id="patients-add-btn">
-          <FontAwesomeIcon icon={faPlus} />
-        </button>
       </div>
 
       {/* ── List ── */}
       <div className={styles.listContainer}>
-        {(patients || []).map((patient) => (
-          <button
-            key={patient.id}
-            className={styles.patientCard}
-            onClick={() => router.push(`/patients/${patient.id}`)}
-            id={`patient-card-${patient.id}`}
-          >
-            <div className={`${styles.cardAvatar} ${patient.gender === "male" ? styles.cardAvatarMale : styles.cardAvatarFemale}`}>
+        {patients && patients.length > 0 ? (
+          patients.map((patient) => (
+            <button
+              key={patient.id}
+              className={styles.patientCard}
+              onClick={() => router.push(`/patients/${patient.id}`)}
+              id={`patient-card-${patient.id}`}
+            >
+              <div className={`${styles.cardAvatar} ${patient.gender === "male" ? styles.cardAvatarMale : styles.cardAvatarFemale}`}>
+                <FontAwesomeIcon icon={faUserInjured} />
+              </div>
+              <div className={styles.cardContent}>
+                <span className={styles.cardName}>{patient.name}</span>
+                <span className={styles.cardSub}>{patient.address}</span>
+                <span className={`${styles.cardRisk} ${getRiskClass(patient.riskLevel)}`}>
+                  {getRiskLabel(patient.riskLevel)}
+                </span>
+              </div>
+              <FontAwesomeIcon icon={faChevronRight} className={styles.cardArrow} />
+            </button>
+          ))
+        ) : (
+          <div className={styles.emptyState}>
+            <div className={styles.emptyIcon}>
               <FontAwesomeIcon icon={faUserInjured} />
             </div>
-            <div className={styles.cardContent}>
-              <span className={styles.cardName}>{patient.name}</span>
-              <span className={styles.cardSub}>{patient.address}</span>
-              <span className={`${styles.cardRisk} ${getRiskClass(patient.riskLevel)}`}>
-                {getRiskLabel(patient.riskLevel)}
-              </span>
-            </div>
-            <FontAwesomeIcon icon={faChevronRight} className={styles.cardArrow} />
-          </button>
-        ))}
+            <span className={styles.emptyTitle}>Belum Ada Pasien</span>
+            <p className={styles.emptyText}>Silakan tambahkan data pasien terlebih dahulu untuk mulai memesan layanan caregiver.</p>
+            <button className={styles.addButton} onClick={() => router.push("/patients/new")} aria-label="Tambah Pasien" id="patients-add-btn">
+          <FontAwesomeIcon icon={faPlus} style={{ marginRight: "6px" }} /> Tambah Pasien
+        </button>
+          </div>
+          
+        )}
       </div>
     </>
   );

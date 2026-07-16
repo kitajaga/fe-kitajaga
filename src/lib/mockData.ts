@@ -75,6 +75,8 @@ export interface MockBooking {
   id: string;
   patientId: string;
   caregiverId: string | null;
+  patient?: { id: string; name: string };
+  caregiver?: { id: string; name: string } | null;
   bookingType: "immediate" | "scheduled";
   status: BookingStatus;
   scheduledAt: string | null;
