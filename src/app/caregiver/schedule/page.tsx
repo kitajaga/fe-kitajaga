@@ -14,7 +14,8 @@ import {
   faComments,
   faUserCircle,
 } from "@fortawesome/free-solid-svg-icons";
-import { fetchBookings, getUser } from "@/lib/api";
+import { fetchBookings, getUser, getToken } from "@/lib/api";
+import { io } from "socket.io-client";
 import { BOOKING_STATUS_LABELS } from "@/lib/constants";
 import styles from "./schedule.module.css";
 
@@ -109,18 +110,39 @@ export default function CaregiverSchedulePage() {
     }
   }, [router]);
 
+  const loadBookings = async () => {
+    try {
+      const data = await fetchBookings();
+      setBookings(data || []);
+    } catch (err) {
+      console.error("Failed to fetch bookings", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await fetchBookings();
-        setBookings(data || []);
-      } catch (err) {
-        console.error("Failed to fetch bookings", err);
-      } finally {
-        setLoading(false);
-      }
+    loadBookings();
+
+    const token = getToken();
+    const socketUrl = process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") || "https://be-kitajaga-production.up.railway.app";
+    const socket = io(socketUrl, { auth: { token } });
+
+    socket.on("connect", () => {
+      console.log("Caregiver schedule connected to socket");
+    });
+
+    socket.on("new_booking_offer", () => {
+      loadBookings();
+    });
+
+    socket.on("booking_status_updated", () => {
+      loadBookings();
+    });
+
+    return () => {
+      socket.disconnect();
     };
-    load();
   }, []);
 
   const calendarDates = useMemo(() => generateCalendarDates(), []);
