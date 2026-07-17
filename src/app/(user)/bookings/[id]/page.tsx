@@ -17,9 +17,10 @@ import { faRotateRight } from "@fortawesome/free-solid-svg-icons/faRotateRight";
 import { faFileLines } from "@fortawesome/free-solid-svg-icons/faFileLines";
 import { faUserInjured } from "@fortawesome/free-solid-svg-icons/faUserInjured";
 import ChatModal from "@/components/ChatModal";
-import { getBookingDetail, getBookingProgress, fetchPatientById, rateBooking, chargePayment, mockSettlePayment } from "@/lib/api";
+import { getBookingDetail, getBookingProgress, fetchPatientById, rateBooking, chargePayment, mockSettlePayment, getToken } from "@/lib/api";
 import { BOOKING_STATUS_LABELS, PROGRESS_LABELS } from "@/lib/constants";
 import styles from "../bookings.module.css";
+import { io } from "socket.io-client";
 
 const PROGRESS_ORDER = [
   "heading_to_patient",
@@ -78,6 +79,27 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
       }
     }
     loadData();
+
+    // ── WebSocket Listener ──
+    const token = getToken();
+    const socketUrl = process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") || "https://be-kitajaga-production.up.railway.app";
+    const socket = io(socketUrl, { auth: { token } });
+
+    socket.on("connect", () => {
+      socket.emit("join_booking", { bookingId: id });
+    });
+
+    socket.on("booking_status_changed", (data: any) => {
+      console.log("booking_status_changed event received", data);
+      if (data.bookingId === id || data.id === id) {
+        // Refresh booking details when status changes
+        loadData();
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, [id]);
 
   const progressStatuses = new Set(progressList.map((p) => p.status));
@@ -314,11 +336,11 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
           </h3>
           <div className={styles.infoRow}>
             <span className={styles.infoLabel}>Nama</span>
-            <span className={styles.infoValue}>{booking.facilityName}</span>
+            <span className={styles.infoValue}>{booking.facility?.name || booking.facilityName || "-"}</span>
           </div>
           <div className={styles.infoRow}>
             <span className={styles.infoLabel}>Alamat</span>
-            <span className={styles.infoValue}>{booking.facilityAddress}</span>
+            <span className={styles.infoValue}>{booking.facility?.address || booking.facilityAddress || "-"}</span>
           </div>
         </div>
 
@@ -425,15 +447,17 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
           ) : (
             <div style={{ textAlign: "center", padding: "1rem 0" }}>
               <p style={{ color: "var(--text-secondary)", marginBottom: "1rem", fontSize: "0.9rem" }}>
-                Tagihan pembayaran belum tersedia atau masih dalam proses perhitungan.
+                Tagihan pembayaran belum tersedia atau masih dalam proses pencarian caregiver.
               </p>
-              <button 
-                onClick={handlePay} 
-                disabled={isProcessingPayment}
-                style={{ padding: "12px", background: "var(--color-primary)", color: "white", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: 600, width: "100%" }}
-              >
-                {isProcessingPayment ? "Memproses..." : "Buat Tagihan & Bayar"}
-              </button>
+              {booking.status === "matched" && (
+                <button 
+                  onClick={handlePay} 
+                  disabled={isProcessingPayment}
+                  style={{ padding: "12px", background: "var(--color-primary)", color: "white", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: 600, width: "100%" }}
+                >
+                  {isProcessingPayment ? "Memproses..." : "Buat Tagihan & Bayar"}
+                </button>
+              )}
             </div>
           )}
         </div>

@@ -15,7 +15,8 @@ import { faCircleCheck } from "@fortawesome/free-solid-svg-icons/faCircleCheck";
 import { faHeartPulse } from "@fortawesome/free-solid-svg-icons/faHeartPulse";
 import { faShieldHeart } from "@fortawesome/free-solid-svg-icons/faShieldHeart";
 import styles from "./home.module.css";
-import { fetchCaregiverProfile, fetchBookings, getUser } from "@/lib/api";
+import { fetchCaregiverProfile, fetchBookings, getUser, updateCaregiverStatus, updateCaregiverLocation, getToken } from "@/lib/api";
+import { io } from "socket.io-client";
 
 const BANNERS = [
   { id: 1, title: "Selamat Datang di Kitajaga!", subtitle: "Platform pendampingan lansia terpercaya", color: "var(--gradient-brand)" },
@@ -35,6 +36,8 @@ export default function CaregiverHomePage() {
   const [profile, setProfile] = useState<any>(null); //belum ada api profile
   const [activeBooking, setActiveBooking] = useState<any>(null); //belum ada api profile
   const [loading, setLoading] = useState(true);
+  const [isOnline, setIsOnline] = useState(false);
+  const [statusLoading, setStatusLoading] = useState(false);
 
   // ── Role Guard ──
   useEffect(() => {
@@ -85,7 +88,81 @@ export default function CaregiverHomePage() {
       }
     };
     loadData();
+
+    // ── WebSocket for New Booking Offers ──
+    const token = getToken();
+    const socketUrl = process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") || "https://be-kitajaga-production.up.railway.app";
+    const socket = io(socketUrl, { auth: { token } });
+
+    socket.on("connect", () => {
+      console.log("Caregiver dashboard connected to socket");
+    });
+
+    socket.on("new_booking_offer", (data: any) => {
+      console.log("New booking offer:", data);
+      alert(`Ada pesanan baru dari ${data.patientName || "pasien"} di ${data.facilityName || "faskes"}! Silakan cek menu Jadwal.`);
+      // Refresh the booking list
+      loadData();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
+
+  // ── Online Status & Location ──
+  useEffect(() => {
+    if (profile) {
+      setIsOnline(profile.availabilityStatus === "online");
+    }
+  }, [profile]);
+
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+    if (isOnline) {
+      // Update location immediately and then every 30 seconds
+      const sendLocation = () => {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              updateCaregiverLocation(pos.coords.latitude, pos.coords.longitude)
+                .catch(err => console.error("Failed to update location:", err));
+            },
+            (err) => {
+              console.warn("Geolocation error, using fallback location:", err);
+              // Fallback for local testing if location is denied or HTTP
+              updateCaregiverLocation(-6.200000, 106.816666).catch(() => {});
+            }
+          );
+        } else {
+          console.warn("Geolocation not supported, using fallback location");
+          updateCaregiverLocation(-6.200000, 106.816666).catch(() => {});
+        }
+      };
+      
+      sendLocation();
+      intervalId = setInterval(sendLocation, 30000);
+    }
+    
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isOnline]);
+
+  const handleToggleStatus = async () => {
+    if (statusLoading) return;
+    setStatusLoading(true);
+    try {
+      const newStatus = isOnline ? "offline" : "online";
+      await updateCaregiverStatus(newStatus);
+      setIsOnline(!isOnline);
+    } catch (err) {
+      console.error("Failed to update status", err);
+      alert("Gagal memperbarui status. Pastikan koneksi stabil.");
+    } finally {
+      setStatusLoading(false);
+    }
+  };
 
   return (
     <div className={styles.pageWrapper}>
@@ -99,6 +176,20 @@ export default function CaregiverHomePage() {
             <div className={styles.greeting}>
               <span className={styles.greetingLabel}>Halo, Caregiver</span>
               <h1 className={styles.greetingName}>{loading ? "Memuat..." : (profile?.name || "Suster")}</h1>
+              
+              <div className={styles.toggleContainer}>
+                <button 
+                  className={`${styles.toggleSwitch} ${isOnline ? styles.active : ""}`}
+                  onClick={handleToggleStatus}
+                  disabled={statusLoading}
+                  aria-label="Toggle Online Status"
+                >
+                  <span className={styles.toggleThumb} />
+                </button>
+                <span className={`${styles.toggleLabel} ${isOnline ? styles.online : ""}`}>
+                  {statusLoading ? "Memproses..." : (isOnline ? "Online" : "Offline")}
+                </span>
+              </div>
             </div>
           </div>
           <button className={styles.notifButton} aria-label="Notifikasi" id="home-notif-btn">

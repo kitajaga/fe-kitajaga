@@ -95,6 +95,56 @@
   border: 2px solid var(--color-gray-100);
 }
 
+/* ── Online Toggle ── */
+.toggleContainer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.toggleLabel {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-gray-600);
+}
+
+.toggleLabel.online {
+  color: #10B981; /* success color */
+}
+
+.toggleSwitch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  background: var(--color-gray-300);
+  border-radius: 12px;
+  cursor: pointer;
+  border: none;
+  transition: background 0.3s ease;
+  padding: 0;
+}
+
+.toggleSwitch.active {
+  background: #10B981;
+}
+
+.toggleThumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.toggleSwitch.active .toggleThumb {
+  transform: translateX(18px);
+}
+
 /* ── Banner Carousel ── */
 .bannerSection {
   padding: var(--space-4) var(--space-5) 0;
