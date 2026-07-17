@@ -6,12 +6,11 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLocationDot, faCircleCheck, faSpinner, faCircleXmark, faCalendarDays, faClockRotateLeft } from "@fortawesome/free-solid-svg-icons";
 import { useApi } from "@/hooks/useApi";
 import { fetchBookings } from "@/lib/api";
-import { BOOKING_STATUS_LABELS } from "@/lib/mockData";
-import type { BookingStatus, MockBooking } from "@/lib/mockData";
+import { BOOKING_STATUS_LABELS } from "@/lib/constants";
 import styles from "./activity.module.css";
 
 // ── Helpers ──
-function getIconStyle(status: BookingStatus) {
+function getIconStyle(status: string) {
   switch (status) {
     case "in_progress":
     case "matched":
@@ -29,7 +28,7 @@ function getIconStyle(status: BookingStatus) {
   }
 }
 
-function getStatusBadge(status: BookingStatus) {
+function getStatusBadge(status: string) {
   switch (status) {
     case "in_progress":
     case "matched":
@@ -47,7 +46,7 @@ function getStatusBadge(status: BookingStatus) {
   }
 }
 
-function getStatusIcon(status: BookingStatus) {
+function getStatusIcon(status: string) {
   switch (status) {
     case "in_progress":
       return faLocationDot;
@@ -64,7 +63,7 @@ function getStatusIcon(status: BookingStatus) {
 
 // ── Categorization ──
 type BookingCategory = "ongoing" | "upcoming" | "completed";
-function getBookingCategory(status: BookingStatus): BookingCategory {
+function getBookingCategory(status: string): BookingCategory {
   if (status === "in_progress") return "ongoing";
   if (["completed", "reported", "payment_failed", "reschedule_failed"].includes(status)) return "completed";
   return "upcoming";

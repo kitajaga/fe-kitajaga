@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import styles from "./page.module.css";
+import { getUser } from "@/lib/api";
 
 export default function SplashScreen() {
   const router = useRouter();
@@ -15,7 +16,23 @@ export default function SplashScreen() {
     }, 2800);
 
     const redirectTimer = setTimeout(() => {
-      router.push("/onboarding");
+      // Check if user already logged in → redirect accordingly
+      const user = getUser();
+      if (user && user.token) {
+        if (user.role === "caregiver") {
+          router.push("/caregiver");
+        } else {
+          router.push("/dashboard");
+        }
+      } else {
+        // Check if onboarding is complete
+        const onboardingDone = localStorage.getItem("onboarding_complete");
+        if (onboardingDone) {
+          router.push("/role-pick");
+        } else {
+          router.push("/onboarding");
+        }
+      }
     }, 3300);
 
     return () => {
