@@ -14,7 +14,7 @@ import {
   faComments,
   faUserCircle,
 } from "@fortawesome/free-solid-svg-icons";
-import { fetchBookings, getUser, getToken } from "@/lib/api";
+import { fetchBookings, getUser, getToken, getSocketBaseUrl } from "@/lib/api";
 import { io } from "socket.io-client";
 import { BOOKING_STATUS_LABELS } from "@/lib/constants";
 import styles from "./schedule.module.css";
@@ -125,7 +125,7 @@ export default function CaregiverSchedulePage() {
     loadBookings();
 
     const token = getToken();
-    const socketUrl = process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") || "https://be-kitajaga-production.up.railway.app";
+    const socketUrl = getSocketBaseUrl();
     const socket = io(socketUrl, { auth: { token } });
 
     socket.on("connect", () => {

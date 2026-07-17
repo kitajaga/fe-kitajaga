@@ -24,7 +24,7 @@ export default function NewPatientPage() {
   const [gender, setGender] = useState("");
   const [address, setAddress] = useState("");
   const [patientNote, setPatientNote] = useState("");
-  const [mobilityStatus, setMobilityStatus] = useState("independent");
+  const [mobilityStatus, setMobilityStatus] = useState("ambulatory");
   const [allergies, setAllergies] = useState("");
   const [currentMedications, setCurrentMedications] = useState("");
   const [ecName, setEcName] = useState("");
@@ -138,9 +138,9 @@ export default function NewPatientPage() {
         <div className={styles.inputGroup}>
           <label className={styles.inputLabel} htmlFor="patient-mobility">Status Mobilitas</label>
           <select id="patient-mobility" className={`${styles.input} ${styles.select}`} value={mobilityStatus} onChange={(e) => setMobilityStatus(e.target.value)} disabled={isLoading}>
-            <option value="independent">Mandiri</option>
-            <option value="assisted">Butuh Bantuan Sebagian</option>
-            <option value="dependent">Sangat Tergantung / Bedridden</option>
+            <option value="ambulatory">Mandiri (Ambulatory)</option>
+            <option value="wheelchair">Kursi Roda</option>
+            <option value="bedbound">Bedbound / Tidak Bisa Bergerak</option>
           </select>
         </div>
 

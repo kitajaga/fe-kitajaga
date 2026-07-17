@@ -15,7 +15,7 @@ import { faCircleCheck } from "@fortawesome/free-solid-svg-icons/faCircleCheck";
 import { faHeartPulse } from "@fortawesome/free-solid-svg-icons/faHeartPulse";
 import { faShieldHeart } from "@fortawesome/free-solid-svg-icons/faShieldHeart";
 import styles from "./home.module.css";
-import { fetchCaregiverProfile, fetchBookings, getUser, updateCaregiverStatus, updateCaregiverLocation, getToken, acceptBooking } from "@/lib/api";
+import { fetchCaregiverProfile, fetchBookings, getUser, updateCaregiverStatus, updateCaregiverLocation, getToken, getSocketBaseUrl } from "@/lib/api";
 import { io } from "socket.io-client";
 
 const BANNERS = [
@@ -39,7 +39,6 @@ export default function CaregiverHomePage() {
   const [isOnline, setIsOnline] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
   const [incomingOffer, setIncomingOffer] = useState<any>(null);
-  const [acceptingOffer, setAcceptingOffer] = useState(false);
 
   // ── Role Guard ──
   useEffect(() => {
@@ -95,7 +94,7 @@ export default function CaregiverHomePage() {
 
     // ── WebSocket for New Booking Offers & Status Updates ──
     const token = getToken();
-    const socketUrl = process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") || "https://be-kitajaga-production.up.railway.app";
+    const socketUrl = getSocketBaseUrl();
     const socket = io(socketUrl, { auth: { token } });
 
     socket.on("connect", () => {
@@ -118,19 +117,10 @@ export default function CaregiverHomePage() {
     };
   }, []);
 
-  const handleAcceptIncomingOffer = async () => {
+  const handleAcceptIncomingOffer = () => {
     if (!incomingOffer?.bookingId) return;
-    setAcceptingOffer(true);
-    try {
-      await acceptBooking(incomingOffer.bookingId);
-      alert("Pesanan berhasil diterima!");
-      setIncomingOffer(null);
-      loadData();
-    } catch (err: any) {
-      alert(err.message || "Gagal menerima pesanan.");
-    } finally {
-      setAcceptingOffer(false);
-    }
+    setIncomingOffer(null);
+    router.push(`/caregiver/schedule/${incomingOffer.bookingId}`);
   };
 
   // ── Online Status & Location ──
@@ -240,7 +230,6 @@ export default function CaregiverHomePage() {
               <div style={{ display: "flex", gap: "8px" }}>
                 <button 
                   onClick={handleAcceptIncomingOffer}
-                  disabled={acceptingOffer}
                   style={{
                     flex: 1,
                     padding: "10px",
@@ -252,7 +241,7 @@ export default function CaregiverHomePage() {
                     cursor: "pointer"
                   }}
                 >
-                  {acceptingOffer ? "Memproses..." : "Terima Pesanan"}
+                  Lihat & Terima
                 </button>
                 <button 
                   onClick={() => router.push(`/caregiver/schedule/${incomingOffer.bookingId}`)}

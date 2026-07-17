@@ -3,8 +3,27 @@
  * Base configuration and fetch utility for backend API calls.
  */
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+const DEFAULT_API_BASE = "http://localhost:4000/api";
+
+export function getApiBaseUrl(): string {
+  return process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_BASE;
+}
+
+export function getSocketBaseUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_API_URL || "/api";
+
+  if (typeof window !== "undefined" && !configured.startsWith("http")) {
+    return window.location.origin;
+  }
+
+  if (configured.startsWith("http")) {
+    return configured.replace(/\/api(?:\/v1)?\/?$/, "");
+  }
+
+  return "https://be-kitajaga-production.up.railway.app";
+}
+
+const BASE_URL = getApiBaseUrl();
 
 // ── Types ──
 
@@ -167,19 +186,45 @@ export async function updateBookingProgress(id: string, progressData: Record<str
   return json.data;
 }
 
-export async function getBookingProgress(id: string) {
-  const token = getToken();
-  if (!token) throw new Error("No token found");
-  
-  const res = await fetch(`${BASE_URL}/bookings/${id}/progress`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
-  
-  const json = await res.json();
-  if (!res.ok || !json.success) {
-    throw new Error(json.message || "Failed to fetch progress");
+export interface BookingProgressEntry {
+  status: string;
+  latitude?: number;
+  longitude?: number;
+  photoUrl?: string | null;
+  note?: string | null;
+  createdAt?: string;
+}
+
+export interface BookingProgressData {
+  latest: BookingProgressEntry | null;
+  history: BookingProgressEntry[];
+}
+
+/** Checkpoints that require photoUrl per backend contract */
+export const PHOTO_REQUIRED_STATUSES = [
+  "picked_up_patient",
+  "arrived_registration",
+  "in_consultation",
+  "completed",
+] as const;
+
+export function normalizeProgressData(data: unknown): BookingProgressData {
+  if (Array.isArray(data)) {
+    return { latest: data[data.length - 1] ?? null, history: data };
   }
-  return json.data;
+  if (data && typeof data === "object" && "history" in data) {
+    const obj = data as BookingProgressData;
+    return {
+      latest: obj.latest ?? obj.history[obj.history.length - 1] ?? null,
+      history: Array.isArray(obj.history) ? obj.history : [],
+    };
+  }
+  return { latest: null, history: [] };
+}
+
+export async function getBookingProgress(id: string): Promise<BookingProgressData> {
+  const data = await apiFetch<unknown>(`/bookings/${id}/progress`);
+  return normalizeProgressData(data);
 }
 
 export async function submitReport(id: string, reportData: { notes: string; conditionSummary: string }) {

@@ -6,12 +6,14 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft, faSpinner, faUserInjured, faBookOpen, faCheckCircle, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import { 
   getBookingDetail, 
-  fetchPatientById, 
+  fetchPatientById,
   fetchGuidebook, 
   acknowledgeGuidebook,
   acceptBooking,
   updateBookingProgress,
-  submitReport
+  submitReport,
+  getBookingProgress,
+  PHOTO_REQUIRED_STATUSES,
 } from "@/lib/api";
 import { BOOKING_STATUS_LABELS, PROGRESS_LABELS } from "@/lib/constants";
 import ChatModal from "@/components/ChatModal";
@@ -25,6 +27,7 @@ export default function CaregiverBookingDetailPage({ params }: { params: Promise
   const [booking, setBooking] = useState<any>(null);
   const [patient, setPatient] = useState<any>(null);
   const [guidebook, setGuidebook] = useState<any>(null);
+  const [guidebookError, setGuidebookError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [reportNotes, setReportNotes] = useState("");
@@ -34,6 +37,7 @@ export default function CaregiverBookingDetailPage({ params }: { params: Promise
   const [progressNote, setProgressNote] = useState("");
   const [progressPhoto, setProgressPhoto] = useState<File | null>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [progressHistory, setProgressHistory] = useState<any[]>([]);
 
   const PROGRESS_ORDER = [
     "heading_to_patient",
@@ -51,17 +55,36 @@ export default function CaregiverBookingDetailPage({ params }: { params: Promise
       try {
         const b = await getBookingDetail(id);
         setBooking(b);
-        if (b.patientId) {
+        setGuidebook(null);
+        setGuidebookError(null);
+        if (b.patient) {
+          setPatient(b.patient);
+        } else if (b.patientId) {
           const p = await fetchPatientById(b.patientId).catch(() => null);
-          setPatient(p);
+          if (p) setPatient(p);
         }
         
         // Fetch guidebook
-        try {
-          const gb = await fetchGuidebook(id);
-          setGuidebook(gb);
-        } catch (e) {
-          console.error("Guidebook not found or forbidden");
+        if (b.guidebookId) {
+          try {
+            const gb = await fetchGuidebook(id);
+            setGuidebook(gb);
+            setGuidebookError(null);
+          } catch (e) {
+            console.error("Guidebook not found or forbidden", e);
+            setGuidebookError("Guidebook sedang diproses atau belum tersedia. Mohon tunggu beberapa saat lalu muat ulang halaman.");
+          }
+        } else {
+          setGuidebookError("Guidebook belum tersedia untuk booking ini.");
+        }
+
+        if (b.status === "in_progress" || b.status === "completed" || b.status === "reported" || b.status === "paid" || b.status === "scheduled") {
+          try {
+            const prog = await getBookingProgress(id);
+            setProgressHistory(prog.history);
+          } catch (err) {
+            console.error("Failed to fetch progress", err);
+          }
         }
       } catch (e) {
         console.error("Failed to load booking details", e);
@@ -78,6 +101,7 @@ export default function CaregiverBookingDetailPage({ params }: { params: Promise
       setActionLoading(true);
       await acknowledgeGuidebook(guidebook.id);
       setGuidebook({ ...guidebook, acknowledgedByCaregiver: true });
+      setBooking({ ...booking, guidebookAcknowledged: true });
       alert("Guidebook berhasil dipahami.");
     } catch (e: any) {
       alert(e.message || "Gagal acknowledge guidebook");
@@ -100,7 +124,7 @@ export default function CaregiverBookingDetailPage({ params }: { params: Promise
   };
 
   const handleUpdateProgressClick = (nextStatus: string) => {
-    const photoRequired = ["picked_up_patient", "arrived_registration", "in_consultation", "completed"].includes(nextStatus);
+    const photoRequired = PHOTO_REQUIRED_STATUSES.includes(nextStatus as typeof PHOTO_REQUIRED_STATUSES[number]);
     setPendingProgress({ status: nextStatus, photoRequired });
     setProgressNote("");
     setProgressPhoto(null);
@@ -109,24 +133,20 @@ export default function CaregiverBookingDetailPage({ params }: { params: Promise
 
   const submitUpdateProgress = async () => {
     if (!pendingProgress) return;
-    
+
     if (pendingProgress.photoRequired && !progressPhoto) {
-      alert("Foto wajib diunggah untuk status ini.");
+      alert("Foto bukti wajib diunggah untuk status ini.");
       return;
     }
 
     try {
       setActionLoading(true);
-      // Simulate photo upload to get a URL
       let photoUrl = "";
       if (pendingProgress.photoRequired && progressPhoto) {
-        // In real app, upload `progressPhoto` to S3/Cloudinary and get URL
-        // Here we mock it
-        await new Promise(resolve => setTimeout(resolve, 1000));
         photoUrl = "https://via.placeholder.com/600x400.png?text=Progress+Photo";
       }
 
-      await updateBookingProgress(id, { 
+      const result = await updateBookingProgress(id, { 
         status: pendingProgress.status, 
         latitude: -6.200000, 
         longitude: 106.816666, 
@@ -134,7 +154,9 @@ export default function CaregiverBookingDetailPage({ params }: { params: Promise
         ...(photoUrl && { photoUrl })
       });
       
-      setBooking({ ...booking, status: pendingProgress.status });
+      const newStatus = pendingProgress.status === "completed" ? "completed" : "in_progress";
+      setBooking({ ...booking, status: newStatus });
+      setProgressHistory([...progressHistory, result]);
       setPendingProgress(null);
       setIsCameraOpen(false);
     } catch (e: any) {
@@ -152,7 +174,7 @@ export default function CaregiverBookingDetailPage({ params }: { params: Promise
     }
     try {
       setActionLoading(true);
-      await submitReport(id, { notes: reportNotes, conditionSummary: reportSummary });
+      await submitReport(booking.id, { conditionSummary: reportSummary, notes: reportNotes });
       setBooking({ ...booking, status: "reported" });
       alert("Laporan berhasil dikirim!");
     } catch (e: any) {
@@ -161,6 +183,8 @@ export default function CaregiverBookingDetailPage({ params }: { params: Promise
       setActionLoading(false);
     }
   };
+
+  const isGuidebookAcknowledged = Boolean(booking?.guidebookAcknowledged ?? guidebook?.acknowledgedByCaregiver);
 
   if (loading) {
     return (
@@ -288,58 +312,63 @@ export default function CaregiverBookingDetailPage({ params }: { params: Promise
         </div>
       ) : (
         <div className={styles.card}>
-          <span style={{ color: "var(--color-text-secondary)", fontSize: "var(--font-size-sm)" }}>Guidebook belum tersedia.</span>
+          <span style={{ color: "var(--color-text-secondary)", fontSize: "var(--font-size-sm)" }}>
+            {guidebookError || "Guidebook belum tersedia."}
+          </span>
         </div>
       )}
 
-      {/* ── Actions (Accept) ── */}
-      {booking.status === "pending_matching" && guidebook && (
+      {/* ── Actions (Accept / Acknowledge) ── */}
+      {guidebook && !isGuidebookAcknowledged && (
         <div style={{ marginTop: "var(--space-4)" }}>
-          {!guidebook.acknowledgedByCaregiver ? (
-            <>
-              <div className={styles.warningAlert}>
-                <FontAwesomeIcon icon={faTriangleExclamation} />
-                <span>Anda wajib membaca dan memahami Guidebook di atas sebelum dapat menerima pesanan ini.</span>
-              </div>
-              <button 
-                className={styles.primaryAction} 
-                onClick={handleAcknowledge}
-                disabled={actionLoading}
-              >
-                <FontAwesomeIcon icon={faCheckCircle} /> Saya Telah Membaca & Paham
-              </button>
-            </>
-          ) : (
-            <>
-              <button 
-                className={styles.primaryAction} 
-                onClick={handleAccept}
-                disabled={actionLoading}
-              >
-                <FontAwesomeIcon icon={actionLoading ? faSpinner : faCheckCircle} spin={actionLoading} /> 
-                {actionLoading ? "Memproses..." : "Terima Pesanan"}
-              </button>
-              <button className={styles.secondaryAction} onClick={() => router.back()}>
-                Kembali
-              </button>
-            </>
-          )}
+          <div className={styles.warningAlert}>
+            <FontAwesomeIcon icon={faTriangleExclamation} />
+            <span>Anda wajib membaca dan memahami Guidebook di atas sebelum dapat melanjutkan.</span>
+          </div>
+          <button 
+            className={styles.primaryAction} 
+            onClick={handleAcknowledge}
+            disabled={actionLoading}
+          >
+            <FontAwesomeIcon icon={faCheckCircle} /> Saya Telah Membaca & Paham
+          </button>
+        </div>
+      )}
+
+      {/* Accept Pending Booking (only if acknowledged) */}
+      {booking.status === "pending_matching" && isGuidebookAcknowledged && (
+        <div style={{ marginTop: "var(--space-4)" }}>
+          <button 
+            className={styles.primaryAction} 
+            onClick={handleAccept}
+            disabled={actionLoading}
+          >
+            <FontAwesomeIcon icon={actionLoading ? faSpinner : faCheckCircle} spin={actionLoading} /> 
+            {actionLoading ? "Memproses..." : "Terima Pesanan"}
+          </button>
+          <button className={styles.secondaryAction} onClick={() => router.back()}>
+            Kembali
+          </button>
         </div>
       )}
 
       {/* ── Actions (In Progress) ── */}
-      {PROGRESS_ORDER.includes(booking.status) && booking.status !== "completed" && (
+      {(booking.status === "in_progress" || booking.status === "paid" || booking.status === "scheduled") && 
+       isGuidebookAcknowledged && (
         <div style={{ marginTop: "var(--space-4)" }} className={styles.card}>
           <div className={styles.cardTitle}>Update Progress</div>
           <p style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-secondary)", marginBottom: "var(--space-3)" }}>
-            Status Saat Ini: <strong>{PROGRESS_LABELS[booking.status] || BOOKING_STATUS_LABELS[booking.status]}</strong>
+            Status Terakhir: <strong>{progressHistory.length > 0 ? PROGRESS_LABELS[progressHistory[progressHistory.length - 1].status] : "Belum Mulai"}</strong>
           </p>
           
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
             {PROGRESS_ORDER.map((status, index) => {
-              const currentIdx = PROGRESS_ORDER.indexOf(booking.status);
-              const isNext = index === currentIdx + 1;
-              const isDone = index <= currentIdx;
+              const currentProgressIdx = progressHistory.length > 0 
+                  ? PROGRESS_ORDER.indexOf(progressHistory[progressHistory.length - 1].status) 
+                  : -1;
+              const isNext = index === currentProgressIdx + 1;
+              const isDone = index <= currentProgressIdx;
+              
               if (isDone) return null; // Don't show past actions
               
               if (isNext) {

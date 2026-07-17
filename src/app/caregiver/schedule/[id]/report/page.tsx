@@ -33,12 +33,7 @@ export default function GiveReportPage() {
         router.push("/caregiver");
       }, 2000);
     } catch (err: any) {
-      console.warn("API Error, mocking success:", err.message);
-      // Mocking success if API fails during dev
-      setSuccess(true);
-      setTimeout(() => {
-        router.push("/caregiver");
-      }, 2000);
+      setError(err.message || "Gagal mengirim laporan");
     } finally {
       setLoading(false);
     }

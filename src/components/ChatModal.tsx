@@ -4,7 +4,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes, faPaperPlane } from "@fortawesome/free-solid-svg-icons";
 import { io, Socket } from "socket.io-client";
-import { fetchChatHistory } from "@/lib/api";
+import { fetchChatHistory, getSocketBaseUrl, getToken, getUser } from "@/lib/api";
 
 interface ChatModalProps {
   bookingId: string;
@@ -17,7 +17,7 @@ export default function ChatModal({ bookingId, onClose }: ChatModalProps) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const currentUser = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem("user") || "{}") : {};
+  const currentUser = getUser();
 
   // Fetch history & Init socket
   useEffect(() => {
@@ -31,8 +31,8 @@ export default function ChatModal({ bookingId, onClose }: ChatModalProps) {
         console.error("Failed to load history", err);
       }
 
-      const token = localStorage.getItem("token");
-      const socketUrl = process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") || "http://localhost:5000";
+      const token = getToken();
+      const socketUrl = getSocketBaseUrl();
       
       activeSocket = io(socketUrl, {
         auth: { token }
@@ -121,7 +121,7 @@ export default function ChatModal({ bookingId, onClose }: ChatModalProps) {
           backgroundColor: "#f9fafb"
         }}>
           {messages.map((msg, idx) => {
-            const isMe = msg.senderId === currentUser.id;
+            const isMe = msg.senderId === currentUser?.id;
             return (
               <div key={idx} style={{
                 alignSelf: isMe ? "flex-end" : "flex-start",
@@ -135,7 +135,7 @@ export default function ChatModal({ bookingId, onClose }: ChatModalProps) {
               }}>
                 <div>{msg.message}</div>
                 <div style={{ fontSize: "10px", opacity: 0.7, marginTop: "4px", textAlign: isMe ? "right" : "left" }}>
-                  {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {new Date(msg.sentAt || msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
               </div>
             );

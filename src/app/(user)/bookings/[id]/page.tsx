@@ -17,7 +17,7 @@ import { faRotateRight } from "@fortawesome/free-solid-svg-icons/faRotateRight";
 import { faFileLines } from "@fortawesome/free-solid-svg-icons/faFileLines";
 import { faUserInjured } from "@fortawesome/free-solid-svg-icons/faUserInjured";
 import ChatModal from "@/components/ChatModal";
-import { getBookingDetail, getBookingProgress, fetchPatientById, rateBooking, chargePayment, mockSettlePayment, getToken } from "@/lib/api";
+import { getBookingDetail, getBookingProgress, fetchPatientById, rateBooking, chargePayment, mockSettlePayment, getToken, getSocketBaseUrl } from "@/lib/api";
 import { BOOKING_STATUS_LABELS, PROGRESS_LABELS } from "@/lib/constants";
 import styles from "../bookings.module.css";
 import { io } from "socket.io-client";
@@ -54,23 +54,26 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
       try {
         const b = await getBookingDetail(id);
         setBooking(b);
+        
+        // Extract nested caregiver data from booking response
+        if (b.caregiver) {
+          setCaregiver(b.caregiver);
+        }
+        
         if (b.patientId) {
           try {
             const p = await fetchPatientById(b.patientId);
             setPatient(p);
           } catch (e) { console.error(e); }
         }
+
+        if (b.report) {
+          setReport(b.report);
+        }
         
         try {
           const prog = await getBookingProgress(id);
-          setProgressList(Array.isArray(prog) ? prog : []);
-          
-          if (b.status === "completed" || b.status === "reported") {
-            const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1"}/bookings/${id}/report`, {
-              headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-            }).then(res => res.json()).catch(() => null);
-            if (r?.success) setReport(r.data);
-          }
+          setProgressList(prog.history);
         } catch (e) { console.error(e); }
       } catch (e) {
         console.error("Failed to load booking details", e);
@@ -82,7 +85,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
 
     // ── WebSocket Listener ──
     const token = getToken();
-    const socketUrl = process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") || "https://be-kitajaga-production.up.railway.app";
+    const socketUrl = getSocketBaseUrl();
     const socket = io(socketUrl, { auth: { token } });
 
     socket.on("connect", () => {
