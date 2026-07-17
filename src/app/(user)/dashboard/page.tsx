@@ -170,9 +170,14 @@ export default function UserDashboardPage() {
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Pasien Anda</h2>
-          <button className={styles.seeAllButton} onClick={() => router.push("/patients")} id="dashboard-see-all-patients">
-            Lihat Semua <FontAwesomeIcon icon={faChevronRight} />
-          </button>
+          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            <button className={styles.seeAllButton} onClick={() => router.push("/patients/new")} id="dashboard-add-patient">
+              + Tambah
+            </button>
+            <button className={styles.seeAllButton} onClick={() => router.push("/patients")} id="dashboard-see-all-patients">
+              Lihat Semua <FontAwesomeIcon icon={faChevronRight} />
+            </button>
+          </div>
         </div>
         <div className={styles.patientList}>
           {(patients || []).map((patient: any) => (
