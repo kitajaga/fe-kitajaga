@@ -114,7 +114,6 @@ export default function UserLoginPage() {
             </button>
           </form>
           <p className={styles.footerLink}>Belum punya akun?{" "}<Link href="/role-pick">Daftar sekarang</Link></p>
-          <p className={styles.footerLink} style={{ marginTop: '8px' }}>Atau sebagai Caregiver?{" "}<Link href="/auth/caregiver/login">Masuk di sini</Link></p>
         </div>
       </div>
     </main>

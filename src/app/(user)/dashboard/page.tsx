@@ -14,6 +14,7 @@ import { faUserInjured } from "@fortawesome/free-solid-svg-icons/faUserInjured";
 import { faCalendarDays } from "@fortawesome/free-solid-svg-icons/faCalendarDays";
 import {
   BOOKING_STATUS_LABELS,
+  MockPatient
 } from "@/lib/mockData";
 import { useApi } from "@/hooks/useApi";
 import { fetchProfile, fetchBookings, fetchPatients } from "@/lib/api";
@@ -178,7 +179,7 @@ export default function UserDashboardPage() {
           </button>
         </div>
         <div className={styles.patientList}>
-          {(patients || []).map((patient) => (
+          {(patients || []).map((patient: MockPatient) => (
             <button
               key={patient.id}
               className={styles.patientItem}

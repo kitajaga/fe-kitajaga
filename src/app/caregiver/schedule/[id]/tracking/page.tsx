@@ -3,10 +3,16 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowLeft, faUser, faComments, faCheck, faLocationArrow } from "@fortawesome/free-solid-svg-icons";
+import { faArrowLeft, faUser, faComments, faCheck, faLocationArrow, faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { getBookingDetail, getBookingProgress, updateBookingProgress } from "@/lib/api";
 import { getBookingById, getPatientById, getProgressForBooking } from "@/lib/mockData";
+import dynamic from "next/dynamic";
 import styles from "./tracking.module.css";
+
+const MapViewer = dynamic(() => import("@/components/MapViewer"), {
+  ssr: false,
+  loading: () => <div className={styles.mapLoading}><FontAwesomeIcon icon={faSpinner} spin /> Memuat Peta...</div>
+});
 
 const PROGRESS_STEPS = [
   { id: "heading_to_patient", label: "Menuju lokasi pasien" },
@@ -115,11 +121,23 @@ export default function TrackingPage() {
 
       {/* Map / Avatar Area */}
       <div className={styles.topMapArea}>
-        <div className={styles.avatarLarge}>
-          <FontAwesomeIcon icon={faUser} />
+        <div className={styles.mapContainer}>
+          <MapViewer 
+            latitude={booking?.latitude || -6.200000} 
+            longitude={booking?.longitude || 106.816666} 
+            zoom={15} 
+            popupText={booking?.patient?.name || "Lokasi Pasien"} 
+          />
         </div>
-        <h2 className={styles.patientName}>{booking?.patient?.name || "Pasien"}</h2>
-        <p className={styles.facilityText}>{booking?.facility?.name || booking?.facilityName || "Fasilitas"}</p>
+        <div className={styles.patientInfoOverlay}>
+          <div className={styles.avatarLarge}>
+            <FontAwesomeIcon icon={faUser} />
+          </div>
+          <div className={styles.patientDetails}>
+            <h2 className={styles.patientName}>{booking?.patient?.name || "Pasien"}</h2>
+            <p className={styles.facilityText}>{booking?.facility?.name || booking?.facilityName || "Fasilitas"}</p>
+          </div>
+        </div>
       </div>
 
       <div className={styles.content}>

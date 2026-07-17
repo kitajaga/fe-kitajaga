@@ -17,7 +17,7 @@ interface Message {
   type: string;
 }
 
-export default function ChatPage() {
+export default function UserChatDetailPage() {
   const router = useRouter();
   const params = useParams();
   const bookingId = params.id as string;
@@ -74,7 +74,7 @@ export default function ChatPage() {
     setMessages([
       {
         id: "m1",
-        senderId: "u1",
+        senderId: "me",
         senderRole: "user",
         message: "Halo Suster, apakah sudah menuju rumah?",
         sentAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
@@ -90,7 +90,7 @@ export default function ChatPage() {
       },
       {
         id: "m3",
-        senderId: "me",
+        senderId: "u2",
         senderRole: "caregiver",
         message: "Ya, saya tiba sekitar 10 menit lagi.",
         sentAt: new Date(Date.now() - 1000 * 60 * 1).toISOString(),
@@ -118,7 +118,7 @@ export default function ChatPage() {
       setMessages(prev => [...prev, {
         id: Math.random().toString(36),
         senderId: "me",
-        senderRole: "caregiver",
+        senderRole: "user",
         message: inputText,
         sentAt: new Date().toISOString(),
         type: "text"
@@ -142,7 +142,7 @@ export default function ChatPage() {
           <div className={styles.avatar}>
             <FontAwesomeIcon icon={faUserCircle} />
           </div>
-          <h1 className={styles.title}>Chat dengan Keluarga</h1>
+          <h1 className={styles.title}>Chat dengan Caregiver</h1>
         </div>
       </header>
 
@@ -166,7 +166,7 @@ export default function ChatPage() {
               );
             }
             
-            const isMe = msg.senderRole === "caregiver";
+            const isMe = msg.senderRole === "user";
             return (
               <div key={msg.id} className={`${styles.messageWrapper} ${isMe ? styles.wrapperMe : styles.wrapperThem}`}>
                 <div className={`${styles.bubble} ${isMe ? styles.bubbleMe : styles.bubbleThem}`}>
