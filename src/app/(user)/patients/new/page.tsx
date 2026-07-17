@@ -24,6 +24,9 @@ export default function NewPatientPage() {
   const [gender, setGender] = useState("");
   const [address, setAddress] = useState("");
   const [patientNote, setPatientNote] = useState("");
+  const [mobilityStatus, setMobilityStatus] = useState("independent");
+  const [allergies, setAllergies] = useState("");
+  const [currentMedications, setCurrentMedications] = useState("");
   const [ecName, setEcName] = useState("");
   const [ecPhone, setEcPhone] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
@@ -46,16 +49,31 @@ export default function NewPatientPage() {
     if (!validate()) return;
     setIsLoading(true);
     try {
+      let lat = -6.195;
+      let lng = 106.832;
+      
+      if (navigator.geolocation) {
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+          });
+          lat = position.coords.latitude;
+          lng = position.coords.longitude;
+        } catch (e) {
+          console.warn("Geolocation failed, using default coordinates");
+        }
+      }
+
       await createPatient({
         name,
         dateOfBirth,
         gender,
         address,
-        latitude: -6.195,
-        longitude: 106.832,
-        mobilityStatus: "independent",
-        allergies: [],
-        currentMedications: [],
+        latitude: lat,
+        longitude: lng,
+        mobilityStatus,
+        allergies: allergies ? allergies.split(",").map(a => a.trim()) : [],
+        currentMedications: currentMedications ? currentMedications.split(",").map(m => m.trim()) : [],
         patientNote,
         emergencyContact: {
           name: ecName,
@@ -69,7 +87,7 @@ export default function NewPatientPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [validate, router, name, dateOfBirth, gender, address, patientNote, ecName, ecPhone]);
+  }, [validate, router, name, dateOfBirth, gender, address, mobilityStatus, allergies, currentMedications, patientNote, ecName, ecPhone]);
 
   const clearErr = useCallback((f: keyof FormErrors) => {
     setErrors((p) => ({ ...p, [f]: undefined }));
@@ -118,7 +136,26 @@ export default function NewPatientPage() {
         </div>
 
         <div className={styles.inputGroup}>
-          <label className={styles.inputLabel} htmlFor="patient-note">Catatan Medis</label>
+          <label className={styles.inputLabel} htmlFor="patient-mobility">Status Mobilitas</label>
+          <select id="patient-mobility" className={`${styles.input} ${styles.select}`} value={mobilityStatus} onChange={(e) => setMobilityStatus(e.target.value)} disabled={isLoading}>
+            <option value="independent">Mandiri</option>
+            <option value="assisted">Butuh Bantuan Sebagian</option>
+            <option value="dependent">Sangat Tergantung / Bedridden</option>
+          </select>
+        </div>
+
+        <div className={styles.inputGroup}>
+          <label className={styles.inputLabel} htmlFor="patient-allergies">Alergi</label>
+          <input id="patient-allergies" type="text" className={styles.input} placeholder="Pisahkan dengan koma (contoh: Debu, Udang)" value={allergies} onChange={(e) => setAllergies(e.target.value)} disabled={isLoading} />
+        </div>
+
+        <div className={styles.inputGroup}>
+          <label className={styles.inputLabel} htmlFor="patient-medications">Pengobatan Saat Ini</label>
+          <input id="patient-medications" type="text" className={styles.input} placeholder="Pisahkan dengan koma (contoh: Metformin 500mg)" value={currentMedications} onChange={(e) => setCurrentMedications(e.target.value)} disabled={isLoading} />
+        </div>
+
+        <div className={styles.inputGroup}>
+          <label className={styles.inputLabel} htmlFor="patient-note">Catatan Medis & Kondisi</label>
           <textarea id="patient-note" className={`${styles.input} ${styles.textarea}`} placeholder="Kondisi medis, kebiasaan, dll." value={patientNote} onChange={(e) => setPatientNote(e.target.value)} disabled={isLoading} />
         </div>
 

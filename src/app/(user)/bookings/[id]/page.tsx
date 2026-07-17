@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useCallback } from "react";
+import { use, useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons/faArrowLeft";
@@ -13,22 +13,14 @@ import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons/faTrian
 import { faComments } from "@fortawesome/free-solid-svg-icons/faComments";
 import { faCreditCard } from "@fortawesome/free-solid-svg-icons/faCreditCard";
 import { faHospital } from "@fortawesome/free-solid-svg-icons/faHospital";
+import { faRotateRight } from "@fortawesome/free-solid-svg-icons/faRotateRight";
 import { faFileLines } from "@fortawesome/free-solid-svg-icons/faFileLines";
 import { faUserInjured } from "@fortawesome/free-solid-svg-icons/faUserInjured";
-import { faRotateRight } from "@fortawesome/free-solid-svg-icons/faRotateRight";
-import {
-  getBookingById,
-  getPatientById,
-  getCaregiverById,
-  getProgressForBooking,
-  getReportForBooking,
-  BOOKING_STATUS_LABELS,
-  PROGRESS_LABELS,
-} from "@/lib/mockData";
-import type { ProgressStatus } from "@/lib/mockData";
+import { getBookingDetail, getBookingProgress, fetchPatientById } from "@/lib/api";
+import { BOOKING_STATUS_LABELS, PROGRESS_LABELS } from "@/lib/constants";
 import styles from "../bookings.module.css";
 
-const PROGRESS_ORDER: ProgressStatus[] = [
+const PROGRESS_ORDER = [
   "heading_to_patient",
   "picked_up_patient",
   "heading_to_facility",
@@ -45,11 +37,37 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
 
-  const booking = getBookingById(id);
-  const patient = booking ? getPatientById(booking.patientId) : null;
-  const caregiver = booking?.caregiverId ? getCaregiverById(booking.caregiverId) : null;
-  const progressList = booking ? getProgressForBooking(booking.id) : [];
-  const report = booking ? getReportForBooking(booking.id) : null;
+  const [booking, setBooking] = useState<any>(null);
+  const [patient, setPatient] = useState<any>(null);
+  const [caregiver, setCaregiver] = useState<any>(null);
+  const [progressList, setProgressList] = useState<any[]>([]);
+  const [report, setReport] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const b = await getBookingDetail(id);
+        setBooking(b);
+        if (b.patientId) {
+          try {
+            const p = await fetchPatientById(b.patientId);
+            setPatient(p);
+          } catch (e) { console.error(e); }
+        }
+        
+        try {
+          const prog = await getBookingProgress(id);
+          setProgressList(Array.isArray(prog) ? prog : []);
+        } catch (e) { console.error(e); }
+      } catch (e) {
+        console.error("Failed to load booking details", e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, [id]);
 
   const progressStatuses = new Set(progressList.map((p) => p.status));
   const latestProgress = progressList[progressList.length - 1];
@@ -60,6 +78,14 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
     await new Promise((r) => setTimeout(r, 800));
     router.push("/dashboard");
   }, [router]);
+
+  if (loading) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", color: "var(--color-primary)" }}>
+        <FontAwesomeIcon icon={faSpinner} spin size="2x" />
+      </div>
+    );
+  }
 
   if (!booking) {
     return (
@@ -303,20 +329,22 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
         )}
 
         {/* ── Payment Info ── */}
-        <div className={styles.infoCard}>
-          <h3 className={styles.infoCardTitle}>
-            <span className={styles.infoCardTitleIcon}><FontAwesomeIcon icon={faCreditCard} /></span>
-            Pembayaran
-          </h3>
-          <div className={styles.infoRow}>
-            <span className={styles.infoLabel}>Total</span>
-            <span className={styles.infoValue}>Rp{booking.payment.amount.toLocaleString("id-ID")}</span>
+        {booking.payment && (
+          <div className={styles.infoCard}>
+            <h3 className={styles.infoCardTitle}>
+              <span className={styles.infoCardTitleIcon}><FontAwesomeIcon icon={faCreditCard} /></span>
+              Pembayaran
+            </h3>
+            <div className={styles.infoRow}>
+              <span className={styles.infoLabel}>Total</span>
+              <span className={styles.infoValue}>Rp{booking.payment.amount?.toLocaleString("id-ID")}</span>
+            </div>
+            <div className={styles.infoRow}>
+              <span className={styles.infoLabel}>Status</span>
+              <span className={styles.infoValue} style={{ textTransform: "capitalize" }}>{booking.payment.status}</span>
+            </div>
           </div>
-          <div className={styles.infoRow}>
-            <span className={styles.infoLabel}>Status</span>
-            <span className={styles.infoValue} style={{ textTransform: "capitalize" }}>{booking.payment.status}</span>
-          </div>
-        </div>
+        )}
       </div>
     </>
   );

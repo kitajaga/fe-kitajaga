@@ -5,7 +5,6 @@ import { useRouter, useParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft, faUser, faComments, faCheck, faLocationArrow, faSpinner } from "@fortawesome/free-solid-svg-icons";
 import { getBookingDetail, getBookingProgress, updateBookingProgress } from "@/lib/api";
-import { getBookingById, getPatientById, getProgressForBooking } from "@/lib/mockData";
 import dynamic from "next/dynamic";
 import styles from "./tracking.module.css";
 
@@ -34,30 +33,26 @@ export default function TrackingPage() {
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchAll = async () => {
+    async function loadData() {
       try {
-        const [bookingData, progressData] = await Promise.all([
-          getBookingDetail(bookingId).catch(() => {
-            const b = getBookingById(bookingId);
-            const p = b ? getPatientById(b.patientId) : null;
-            return { patient: { name: p?.name || "Budi Santoso" }, facility: { name: b?.facilityName || "RSCM Jakarta" } };
-          }),
-          getBookingProgress(bookingId).catch(() => {
-            const p = getProgressForBooking(bookingId);
-            return { history: p.length > 0 ? p : [{ status: "heading_to_patient" }] };
-          })
-        ]);
-        setBooking(bookingData);
-        setHistory(progressData.history || []);
-      } catch (err) {
-        console.error("Error fetching data", err);
+        const b = await getBookingDetail(bookingId);
+        setBooking(b);
+        try {
+          const prog = await getBookingProgress(bookingId);
+          setHistory(Array.isArray(prog) ? prog : (prog.history || []));
+        } catch (e) {
+          setHistory([]);
+        }
+      } catch (err: any) {
+        setError(err.message);
       } finally {
         setLoading(false);
       }
-    };
-    fetchAll();
+    }
+    loadData();
   }, [bookingId]);
 
   const handleUpdateStatus = async (statusId: string) => {
@@ -65,7 +60,7 @@ export default function TrackingPage() {
     try {
       const newProgress = await updateBookingProgress(bookingId, {
         status: statusId,
-        latitude: -6.1925, // Mock location
+        latitude: -6.1925,
         longitude: 106.8415
       });
       setHistory(prev => [...prev, newProgress]);
