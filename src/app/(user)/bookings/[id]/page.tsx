@@ -16,7 +16,8 @@ import { faHospital } from "@fortawesome/free-solid-svg-icons/faHospital";
 import { faRotateRight } from "@fortawesome/free-solid-svg-icons/faRotateRight";
 import { faFileLines } from "@fortawesome/free-solid-svg-icons/faFileLines";
 import { faUserInjured } from "@fortawesome/free-solid-svg-icons/faUserInjured";
-import { getBookingDetail, getBookingProgress, fetchPatientById, chargePayment, mockSettlePayment } from "@/lib/api";
+import ChatModal from "@/components/ChatModal";
+import { getBookingDetail, getBookingProgress, fetchPatientById, rateBooking, chargePayment, mockSettlePayment } from "@/lib/api";
 import { BOOKING_STATUS_LABELS, PROGRESS_LABELS } from "@/lib/constants";
 import styles from "../bookings.module.css";
 
@@ -34,8 +35,6 @@ const PROGRESS_ORDER = [
 export default function BookingDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const [rating, setRating] = useState(0);
-  const [review, setReview] = useState("");
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   const [booking, setBooking] = useState<any>(null);
@@ -44,6 +43,10 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
   const [progressList, setProgressList] = useState<any[]>([]);
   const [report, setReport] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [rating, setRating] = useState<number>(0);
+  const [review, setReview] = useState("");
+  const [showChat, setShowChat] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -60,6 +63,13 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
         try {
           const prog = await getBookingProgress(id);
           setProgressList(Array.isArray(prog) ? prog : []);
+          
+          if (b.status === "completed" || b.status === "reported") {
+            const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1"}/bookings/${id}/report`, {
+              headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+            }).then(res => res.json()).catch(() => null);
+            if (r?.success) setReport(r.data);
+          }
         } catch (e) { console.error(e); }
       } catch (e) {
         console.error("Failed to load booking details", e);
@@ -74,11 +84,23 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
   const latestProgress = progressList[progressList.length - 1];
   const latestIdx = latestProgress ? PROGRESS_ORDER.indexOf(latestProgress.status) : -1;
 
-  const handleSubmitRating = useCallback(async () => {
-    // POST /bookings/:id/rate
-    await new Promise((r) => setTimeout(r, 800));
-    router.push("/dashboard");
-  }, [router]);
+  const handleSubmitRating = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (rating === 0) {
+      alert("Pilih rating bintang terlebih dahulu.");
+      return;
+    }
+    try {
+      setActionLoading(true);
+      await rateBooking(id, rating, review);
+      alert("Terima kasih atas ulasan Anda!");
+      window.location.reload();
+    } catch (err: any) {
+      alert(err.message || "Gagal mengirim rating");
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   const handlePay = async () => {
     setIsProcessingPayment(true);
@@ -222,7 +244,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
             </div>
             {booking.status === "in_progress" && (
               <div className={styles.actionRow}>
-                <button className={styles.primaryAction} id="booking-chat-btn">
+                <button className={styles.primaryAction} id="booking-chat-btn" onClick={() => setShowChat(true)}>
                   <FontAwesomeIcon icon={faComments} /> Chat
                 </button>
                 <button className={styles.secondaryAction} id="booking-reschedule-btn">
@@ -330,8 +352,8 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
           </div>
         )}
 
-        {/* ── Rating Form (completed, not yet rated) ── */}
-        {booking.status === "completed" && (
+        {/* ── Rating Form (completed / reported, not yet rated) ── */}
+        {(booking.status === "completed" || booking.status === "reported") && !booking.rating && (
           <div className={styles.ratingForm}>
             <h3 className={styles.infoCardTitle}>Beri Rating</h3>
             <div className={styles.starsRow}>
@@ -415,7 +437,24 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
             </div>
           )}
         </div>
+
+        {/* ── Submitted Rating View ── */}
+        {booking.rating && (
+          <div className={styles.infoCard}>
+            <h3 className={styles.infoCardTitle}>Ulasan Anda</h3>
+            <div style={{ display: "flex", gap: "4px", color: "#fbbf24", marginBottom: "8px" }}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <FontAwesomeIcon key={star} icon={faStar} style={{ opacity: booking.rating >= star ? 1 : 0.3 }} />
+              ))}
+            </div>
+            <p style={{ fontStyle: "italic", fontSize: "14px", color: "var(--text-secondary)" }}>&quot;{booking.review}&quot;</p>
+          </div>
+        )}
       </div>
+      
+      {showChat && (
+        <ChatModal bookingId={id} onClose={() => setShowChat(false)} />
+      )}
     </>
   );
 }
