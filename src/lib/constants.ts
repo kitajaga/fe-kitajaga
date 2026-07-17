@@ -1,0 +1,30 @@
+export const BOOKING_STATUS_LABELS: Record<string, string> = {
+  pending_matching: "Mencari Caregiver",
+  matched: "Terjadwal",
+  paid: "Pembayaran Diterima",
+  scheduled: "Menunggu Jadwal",
+  in_progress: "Sedang Berjalan",
+  heading_to_patient: "Menuju Pasien",
+  picked_up_patient: "Jemput Pasien",
+  heading_to_facility: "Menuju Faskes",
+  arrived_registration: "Registrasi",
+  waiting_in_queue: "Menunggu Antrean",
+  in_consultation: "Konsultasi",
+  heading_back: "Perjalanan Pulang",
+  completed: "Selesai",
+  reported: "Laporan Terkirim",
+  rescheduling: "Dijadwalkan Ulang",
+  reschedule_failed: "Gagal Dijadwalkan Ulang",
+  payment_failed: "Pembayaran Gagal",
+};
+
+export const PROGRESS_LABELS: Record<string, string> = {
+  heading_to_patient: "Menuju lokasi pasien",
+  picked_up_patient: "Menjemput pasien",
+  heading_to_facility: "Menuju fasilitas kesehatan",
+  arrived_registration: "Tiba dan registrasi",
+  waiting_in_queue: "Menunggu antrean",
+  in_consultation: "Dalam konsultasi",
+  heading_back: "Perjalanan pulang",
+  completed: "Selesai",
+};

@@ -120,44 +120,17 @@ export async function apiFetch<T = unknown>(
 export async function register(
   payload: RegisterPayload
 ): Promise<AuthData> {
-  try {
-    return await apiFetch<AuthData>("/auth/register", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-  } catch (error) {
-    if (process.env.NEXT_PUBLIC_USE_MOCK_DATA !== "true") {
-      throw error;
-    }
-    console.warn("API Error, using mock register:", error);
-    return {
-      id: "mock-new-user",
-      name: payload.name,
-      role: payload.role,
-      token: "mock-jwt-token-12345",
-    };
-  }
+  return await apiFetch<AuthData>("/auth/register", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function login(payload: LoginPayload): Promise<AuthData> {
-  try {
-    return await apiFetch<AuthData>("/auth/login", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-  } catch (error) {
-    if (process.env.NEXT_PUBLIC_USE_MOCK_DATA !== "true") {
-      throw error;
-    }
-    console.warn("API Error, using mock login:", error);
-    const isCaregiver = payload.email.includes("caregiver");
-    return {
-      id: isCaregiver ? "cg-001" : "usr-001",
-      name: isCaregiver ? "Suster Rina" : "Budi Santoso",
-      role: isCaregiver ? "caregiver" : "user",
-      token: "mock-jwt-token-12345",
-    };
-  }
+  return await apiFetch<AuthData>("/auth/login", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 export async function getBookingDetail(id: string) {
   const token = getToken();
@@ -229,22 +202,10 @@ export async function submitReport(id: string, reportData: { notes: string; cond
   return json.data;
 }
 
-// ── Generic Data Fetchers (Replacing Mock Data) ──
-import type { MockUser, MockPatient, MockBooking, MockCaregiver } from "./mockData";
+// ── Generic Data Fetchers ──
 
-export async function fetchProfile(): Promise<MockUser> {
-  try {
-    return await apiFetch<MockUser>("/users/profile");
-  } catch (e) {
-    const localUser = getUser();
-    return {
-      id: localUser?.id || "usr-001",
-      name: localUser?.name || "Budi Santoso",
-      email: "budi.santoso@mail.com",
-      phone: "081234567890",
-      role: localUser?.role || "user",
-    };
-  }
+export async function fetchProfile(): Promise<any> {
+  return await apiFetch<any>("/users/me-user");
 }
 
 export async function fetchCaregiverProfile(): Promise<any> {
@@ -272,23 +233,29 @@ export interface CreatePatientPayload {
   };
 }
 
-export async function createPatient(payload: CreatePatientPayload): Promise<MockPatient> {
-  return await apiFetch<MockPatient>("/patients", {
+export async function createPatient(payload: CreatePatientPayload): Promise<any> {
+  return await apiFetch<any>("/patients", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
-export async function fetchPatientById(id: string): Promise<MockPatient> {
-  return await apiFetch<MockPatient>(`/patients/${id}`);
+export async function fetchPatientById(id: string): Promise<any> {
+  return await apiFetch<any>(`/patients/${id}`);
 }
 
-export async function fetchBookings(): Promise<MockBooking[]> {
-  return await apiFetch<MockBooking[]>("/bookings");
+export async function deletePatient(id: string): Promise<any> {
+  return await apiFetch<any>(`/patients/${id}`, {
+    method: "DELETE",
+  });
 }
 
-export async function fetchCaregivers(): Promise<MockCaregiver[]> {
-  return await apiFetch<MockCaregiver[]>("/caregivers");
+export async function fetchBookings(): Promise<any[]> {
+  return await apiFetch<any[]>("/bookings");
+}
+
+export async function fetchCaregivers(): Promise<any[]> {
+  return await apiFetch<any[]>("/caregivers");
 }
 
 export interface CreateBookingPayload {
@@ -297,11 +264,127 @@ export interface CreateBookingPayload {
   scheduledAt?: string;
   facilityName: string;
   facilityAddress: string;
+  facilityLatitude: number;
+  facilityLongitude: number;
 }
 
-export async function createBooking(payload: CreateBookingPayload): Promise<MockBooking> {
-  return await apiFetch<MockBooking>("/bookings", {
+export async function createBooking(payload: CreateBookingPayload): Promise<any> {
+  return await apiFetch<any>("/bookings", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
+
+// ── Caregiver Status Toggle ──
+
+export async function updateCaregiverStatus(status: "online" | "offline"): Promise<any> {
+  return await apiFetch<any>("/caregivers/me/status", {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+}
+
+// ── Caregiver Location Update ──
+
+export async function updateCaregiverLocation(latitude: number, longitude: number): Promise<any> {
+  return await apiFetch<any>("/caregivers/me/location", {
+    method: "PATCH",
+    body: JSON.stringify({ latitude, longitude }),
+  });
+}
+
+// ── Guidebook API ──
+
+export interface GuidebookData {
+  id: string;
+  quickSummary: string;
+  do: string[];
+  dont: string[];
+  warningSigns: string[];
+  emergencyContact: { name: string; phone: string };
+  acknowledgedByCaregiver: boolean;
+}
+
+export async function fetchGuidebook(bookingId: string): Promise<GuidebookData> {
+  return await apiFetch<GuidebookData>(`/guidebooks/${bookingId}`);
+}
+
+export async function acknowledgeGuidebook(guidebookId: string): Promise<any> {
+  return await apiFetch<any>(`/guidebooks/${guidebookId}/acknowledge`, {
+    method: "POST",
+    body: JSON.stringify({ acknowledged: true }),
+  });
+}
+
+// ── Accept / Cancel / Rate Booking ──
+
+export async function acceptBooking(bookingId: string): Promise<any> {
+  return await apiFetch<any>(`/bookings/${bookingId}/accept`, {
+    method: "POST",
+  });
+}
+
+export async function cancelBooking(bookingId: string): Promise<any> {
+  return await apiFetch<any>(`/bookings/${bookingId}/cancel`, {
+    method: "POST",
+  });
+}
+
+export async function rescheduleBooking(bookingId: string, reason: string): Promise<any> {
+  return await apiFetch<any>(`/bookings/${bookingId}/reschedule`, {
+    method: "POST",
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export async function rateBooking(bookingId: string, rating: number, review?: string): Promise<any> {
+  return await apiFetch<any>(`/bookings/${bookingId}/rate`, {
+    method: "POST",
+    body: JSON.stringify({ rating, review }),
+  });
+}
+
+// ── Chat API ──
+
+export async function fetchChatHistory(bookingId: string): Promise<any[]> {
+  return await apiFetch<any[]>(`/bookings/${bookingId}/chats`);
+}
+
+// ── User Profile ──
+
+
+
+export async function updateUserProfile(data: { name?: string; phone?: string; photoUrl?: string }): Promise<any> {
+  return await apiFetch<any>("/users/me-user", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateCaregiverProfile(data: { name?: string; phone?: string; photoUrl?: string }): Promise<any> {
+  return await apiFetch<any>("/users/me-caregiver", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+// ── Payment API ──
+
+export async function requestPayment(bookingId: string): Promise<any> {
+  return await apiFetch<any>("/payments/charge", {
+    method: "POST",
+    body: JSON.stringify({ bookingId }),
+  });
+}
+
+export async function mockSettlePayment(bookingId: string): Promise<any> {
+  return await apiFetch<any>("/payments/mock-settle", {
+    method: "POST",
+    body: JSON.stringify({ bookingId }),
+  });
+}
+
+export async function getPaymentStatus(bookingId: string): Promise<any> {
+  return await apiFetch<any>(`/payments/${bookingId}/status`);
+}
+

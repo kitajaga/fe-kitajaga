@@ -12,16 +12,12 @@ import { faSpinner } from "@fortawesome/free-solid-svg-icons/faSpinner";
 import { faCircleCheck } from "@fortawesome/free-solid-svg-icons/faCircleCheck";
 import { faUserInjured } from "@fortawesome/free-solid-svg-icons/faUserInjured";
 import { faCalendarDays } from "@fortawesome/free-solid-svg-icons/faCalendarDays";
-import {
-  BOOKING_STATUS_LABELS,
-  MockPatient
-} from "@/lib/mockData";
 import { useApi } from "@/hooks/useApi";
 import { fetchProfile, fetchBookings, fetchPatients } from "@/lib/api";
-import type { BookingStatus } from "@/lib/mockData";
+import { BOOKING_STATUS_LABELS } from "@/lib/constants";
 import styles from "./dashboard.module.css";
 
-function getStatusStyle(status: BookingStatus) {
+function getStatusStyle(status: string) {
   switch (status) {
     case "in_progress":
     case "matched":
@@ -36,7 +32,7 @@ function getStatusStyle(status: BookingStatus) {
   }
 }
 
-function getStatusIcon(status: BookingStatus) {
+function getStatusIcon(status: string) {
   switch (status) {
     case "in_progress":
       return faLocationDot;
@@ -69,7 +65,7 @@ export default function UserDashboardPage() {
   }
 
   const activeBookings = (bookings || []).filter(
-    (b) => !["completed", "reported", "reschedule_failed"].includes(b.status)
+    (b: any) => !["completed", "reported", "reschedule_failed"].includes(b.status)
   );
 
   return (
@@ -117,7 +113,7 @@ export default function UserDashboardPage() {
         </div>
 
         {activeBookings.length > 0 ? (
-          activeBookings.map((booking) => {
+          activeBookings.map((booking: any) => {
             return (
               <div
                 key={booking.id}
@@ -179,7 +175,7 @@ export default function UserDashboardPage() {
           </button>
         </div>
         <div className={styles.patientList}>
-          {(patients || []).map((patient: MockPatient) => (
+          {(patients || []).map((patient: any) => (
             <button
               key={patient.id}
               className={styles.patientItem}

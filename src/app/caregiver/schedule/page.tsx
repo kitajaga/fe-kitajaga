@@ -1,44 +1,75 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
+  faLocationDot,
   faCircleCheck,
-  faClock,
-  faHouse,
+  faSpinner,
+  faCircleXmark,
   faCalendarDays,
+  faClockRotateLeft,
+  faHouse,
   faComments,
   faUserCircle,
-  faClockRotateLeft,
-  faLocationDot,
-  faSpinner,
-  faXmark,
-  faChevronRight,
 } from "@fortawesome/free-solid-svg-icons";
+import { fetchBookings, getUser } from "@/lib/api";
+import { BOOKING_STATUS_LABELS } from "@/lib/constants";
 import styles from "./schedule.module.css";
-import { fetchBookings } from "@/lib/api";
-
-// ── Types ──
-interface Booking {
-  id: string;
-  status: string;
-  bookingType: "immediate" | "scheduled";
-  scheduledAt: string | null;
-  patient?: { id: string; name: string };
-  facility?: { name: string; address: string };
-  facilityName?: string;
-  facilityAddress?: string;
-  createdAt: string;
-}
 
 // ── Helpers ──
+function getIconStyle(status: string) {
+  const active = ["in_progress", "matched", "paid", "scheduled", "heading_to_patient", "picked_up_patient", "heading_to_facility", "arrived_registration", "waiting_in_queue", "in_consultation", "heading_back"];
+  const complete = ["completed", "reported"];
+  const pending = ["pending_matching", "rescheduling"];
+  if (active.includes(status)) return styles.iconActive;
+  if (complete.includes(status)) return styles.iconComplete;
+  if (pending.includes(status)) return styles.iconPending;
+  return styles.iconError;
+}
+
+function getStatusBadge(status: string) {
+  const active = ["in_progress", "matched", "paid", "scheduled", "heading_to_patient", "picked_up_patient", "heading_to_facility", "arrived_registration", "waiting_in_queue", "in_consultation", "heading_back"];
+  const complete = ["completed", "reported"];
+  const pending = ["pending_matching", "rescheduling"];
+  if (active.includes(status)) return styles.statusActive;
+  if (complete.includes(status)) return styles.statusComplete;
+  if (pending.includes(status)) return styles.statusPending;
+  return styles.statusError;
+}
+
+function getStatusIcon(status: string) {
+  const active = ["in_progress", "matched", "paid", "scheduled", "heading_to_patient", "picked_up_patient", "heading_to_facility", "arrived_registration", "waiting_in_queue", "in_consultation", "heading_back"];
+  const complete = ["completed", "reported"];
+  const pending = ["pending_matching", "rescheduling"];
+  if (active.includes(status)) return faLocationDot;
+  if (complete.includes(status)) return faCircleCheck;
+  if (pending.includes(status)) return faSpinner;
+  return faCircleXmark;
+}
+
+// ── Categorization ──
+type BookingCategory = "ongoing" | "upcoming" | "completed";
+function getBookingCategory(status: string): BookingCategory {
+  if (["in_progress", "heading_to_patient", "picked_up_patient", "heading_to_facility", "arrived_registration", "waiting_in_queue", "in_consultation", "heading_back"].includes(status)) return "ongoing";
+  if (["completed", "reported", "payment_failed", "reschedule_failed"].includes(status)) return "completed";
+  return "upcoming";
+}
+
 const STATUS_LABEL: Record<string, string> = {
   pending_matching: "Mencari Caregiver",
   matched: "Terjadwal",
   paid: "Pembayaran Diterima",
   scheduled: "Menunggu Jadwal",
   in_progress: "Sedang Berjalan",
+  heading_to_patient: "Menuju Pasien",
+  picked_up_patient: "Jemput Pasien",
+  heading_to_facility: "Menuju Faskes",
+  arrived_registration: "Registrasi",
+  waiting_in_queue: "Menunggu Antrean",
+  in_consultation: "Konsultasi",
+  heading_back: "Perjalanan Pulang",
   completed: "Selesai",
   reported: "Laporan Terkirim",
   rescheduling: "Dijadwalkan Ulang",
@@ -46,53 +77,7 @@ const STATUS_LABEL: Record<string, string> = {
   payment_failed: "Pembayaran Gagal",
 };
 
-type FilterTab = "all" | "active" | "completed" | "other";
-
-const ACTIVE_STATUSES = ["matched", "paid", "scheduled", "in_progress", "heading_to_patient", "picked_up_patient", "heading_to_facility", "arrived_registration", "waiting_in_queue", "in_consultation", "heading_back"];
-const COMPLETED_STATUSES = ["completed", "reported"];
-
-function getFilteredBookings(bookings: Booking[], tab: FilterTab): Booking[] {
-  switch (tab) {
-    case "active":
-      return bookings.filter((b) => ACTIVE_STATUSES.includes(b.status));
-    case "completed":
-      return bookings.filter((b) => COMPLETED_STATUSES.includes(b.status));
-    case "other":
-      return bookings.filter(
-        (b) => !ACTIVE_STATUSES.includes(b.status) && !COMPLETED_STATUSES.includes(b.status)
-      );
-    default:
-      return bookings;
-  }
-}
-
-function getStatusIcon(status: string) {
-  if (ACTIVE_STATUSES.includes(status)) return faLocationDot;
-  if (COMPLETED_STATUSES.includes(status)) return faCircleCheck;
-  if (status === "pending_matching" || status === "rescheduling") return faSpinner;
-  if (status.includes("failed")) return faXmark;
-  return faClock;
-}
-
-function getStatusClass(status: string, styles: Record<string, string>): string {
-  if (ACTIVE_STATUSES.includes(status)) return styles.statusActive;
-  if (COMPLETED_STATUSES.includes(status)) return styles.statusCompleted;
-  if (status.includes("failed")) return styles.statusFailed;
-  return styles.statusPending;
-}
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-// ── Helpers ──
+// ── Calendar ──
 function generateCalendarDates() {
   const dates = [];
   const today = new Date();
@@ -111,10 +96,18 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "
 export default function CaregiverSchedulePage() {
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [tab, setTab] = useState<FilterTab>("all");
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [filterTab, setFilterTab] = useState<BookingCategory | "all">("all");
+  const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+
+  // ── Role Guard ──
+  useEffect(() => {
+    const user = getUser();
+    if (!user || !user.token) {
+      router.replace("/auth/caregiver/login");
+      return;
+    }
+  }, [router]);
 
   useEffect(() => {
     const load = async () => {
@@ -122,7 +115,6 @@ export default function CaregiverSchedulePage() {
         const data = await fetchBookings();
         setBookings(data || []);
       } catch (err) {
-        setError("Gagal memuat riwayat tugas. Coba lagi nanti.");
         console.error("Failed to fetch bookings", err);
       } finally {
         setLoading(false);
@@ -131,154 +123,123 @@ export default function CaregiverSchedulePage() {
     load();
   }, []);
 
-  const calendarDates = generateCalendarDates();
+  const calendarDates = useMemo(() => generateCalendarDates(), []);
 
-  const filteredBookingsByDate = bookings.filter(b => {
-    const bDateStr = b.scheduledAt || b.createdAt;
-    if (!bDateStr) return false;
-    const bDate = new Date(bDateStr);
-    return bDate.toDateString() === selectedDate.toDateString();
-  });
+  // Filter bookings by selected date AND selected tab
+  const filteredBookings = useMemo(() => {
+    if (!bookings) return [];
+    return bookings.filter((b: any) => {
+      // 1. Date filter
+      const bDateStr = b.scheduledAt || b.createdAt;
+      if (!bDateStr) return false;
+      const bDate = new Date(bDateStr);
+      const isDateMatch = bDate.toDateString() === selectedDate.toDateString();
+      if (!isDateMatch) return false;
 
-  const filtered = getFilteredBookings(filteredBookingsByDate, tab);
+      // 2. Tab filter
+      if (filterTab === "all") return true;
+      return getBookingCategory(b.status) === filterTab;
+    });
+  }, [bookings, selectedDate, filterTab]);
 
-  const tabItems: { key: FilterTab; label: string; count: number }[] = [
-    { key: "all", label: "Semua", count: filteredBookingsByDate.length },
-    { key: "active", label: "Aktif", count: getFilteredBookings(filteredBookingsByDate, "active").length },
-    { key: "completed", label: "Selesai", count: getFilteredBookings(filteredBookingsByDate, "completed").length },
-    { key: "other", label: "Lainnya", count: getFilteredBookings(filteredBookingsByDate, "other").length },
-  ];
+  if (loading) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", color: "var(--color-primary)" }}>
+        <FontAwesomeIcon icon={faSpinner} spin size="2x" />
+      </div>
+    );
+  }
 
   return (
     <div className={styles.pageWrapper}>
-      <main className={styles.container}>
-        {/* Header */}
-        <header className={styles.header}>
-          <div className={styles.headerIcon}>
-            <FontAwesomeIcon icon={faClockRotateLeft} />
-          </div>
-          <h1 className={styles.title}>Riwayat Tugas</h1>
-        </header>
+      {/* ── Header ── */}
+      <div className={styles.pageHeader}>
+        <h1 className={styles.pageTitle}>Jadwal</h1>
+      </div>
 
-        {/* ── Calendar Filter ── */}
-        <div className={styles.calendarStrip}>
-          <div className={styles.monthHeader}>
-            <FontAwesomeIcon icon={faCalendarDays} className={styles.monthIcon} />
-            {MONTHS[selectedDate.getMonth()]} {selectedDate.getFullYear()}
-          </div>
-          <div className={styles.datesRow}>
-            {calendarDates.map((date, idx) => {
-              const isSelected = date.toDateString() === selectedDate.toDateString();
-              const isToday = date.toDateString() === new Date().toDateString();
-              return (
-                <button
-                  key={idx}
-                  className={`${styles.dateItem} ${isSelected ? styles.dateItemSelected : ""} ${isToday && !isSelected ? styles.dateItemToday : ""}`}
-                  onClick={() => setSelectedDate(date)}
-                >
-                  <span className={styles.dateDayName}>{WEEKDAYS[date.getDay()]}</span>
-                  <span className={styles.dateDayNumber}>{date.getDate()}</span>
-                  {isToday && <span className={styles.todayDot} />}
-                </button>
-              );
-            })}
-          </div>
+      {/* ── Calendar Filter ── */}
+      <div className={styles.calendarStrip}>
+        <div className={styles.monthHeader}>
+          <FontAwesomeIcon icon={faCalendarDays} className={styles.monthIcon} />
+          {MONTHS[selectedDate.getMonth()]} {selectedDate.getFullYear()}
         </div>
+        <div className={styles.datesRow}>
+          {calendarDates.map((date, idx) => {
+            const isSelected = date.toDateString() === selectedDate.toDateString();
+            const isToday = date.toDateString() === new Date().toDateString();
+            return (
+              <button
+                key={idx}
+                className={`${styles.dateItem} ${isSelected ? styles.dateItemSelected : ""} ${isToday && !isSelected ? styles.dateItemToday : ""}`}
+                onClick={() => setSelectedDate(date)}
+              >
+                <span className={styles.dateDayName}>{WEEKDAYS[date.getDay()]}</span>
+                <span className={styles.dateDayNumber}>{date.getDate()}</span>
+                {isToday && <span className={styles.todayDot} />}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-        {/* Filter Tabs */}
-        <div className={styles.tabsBar}>
-          {tabItems.map((t) => (
+      {/* ── Status Filter Tabs ── */}
+      <div className={styles.filterTabs}>
+        {([
+          { key: "all", label: "Semua" },
+          { key: "ongoing", label: "Berlangsung" },
+          { key: "upcoming", label: "Akan Datang" },
+          { key: "completed", label: "Selesai" },
+        ] as { key: BookingCategory | "all"; label: string }[]).map((tab) => (
+          <button
+            key={tab.key}
+            className={`${styles.filterTab} ${filterTab === tab.key ? styles.filterTabActive : ""}`}
+            onClick={() => setFilterTab(tab.key)}
+            id={`cg-filter-${tab.key}`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── List ── */}
+      <div className={styles.listContainer}>
+        {filteredBookings.length > 0 ? (
+          filteredBookings.map((booking: any) => (
             <button
-              key={t.key}
-              className={`${styles.tabBtn} ${tab === t.key ? styles.tabBtnActive : ""}`}
-              onClick={() => setTab(t.key)}
+              key={booking.id}
+              className={styles.activityCard}
+              onClick={() => router.push(`/caregiver/schedule/${booking.id}`)}
+              id={`cg-booking-${booking.id}`}
             >
-              {t.label}
-              {t.count > 0 && (
-                <span className={`${styles.tabBadge} ${tab === t.key ? styles.tabBadgeActive : ""}`}>
-                  {t.count}
+              <div className={`${styles.activityIcon} ${getIconStyle(booking.status)}`}>
+                <FontAwesomeIcon icon={getStatusIcon(booking.status)} />
+              </div>
+              <div className={styles.activityContent}>
+                <span className={styles.activityName}>{booking.patient?.name ?? "Pasien"}</span>
+                <span className={styles.activitySub}>
+                  {booking.facility?.name || booking.facilityName || "Fasilitas"}
                 </span>
-              )}
+                <span className={`${styles.activityStatus} ${getStatusBadge(booking.status)}`}>
+                  {STATUS_LABEL[booking.status] || BOOKING_STATUS_LABELS[booking.status] || booking.status.replace(/_/g, " ")}
+                </span>
+              </div>
+              <span className={styles.activityDate}>
+                {new Date(booking.scheduledAt || booking.createdAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
+              </span>
             </button>
-          ))}
-        </div>
-
-        {/* Content */}
-        <div className={styles.listSection}>
-          {loading ? (
-            <div className={styles.stateWrapper}>
-              <FontAwesomeIcon icon={faSpinner} spin className={styles.stateIcon} />
-              <p className={styles.stateText}>Memuat riwayat tugas...</p>
+          ))
+        ) : (
+          <div className={styles.emptyState}>
+            <div className={styles.emptyIcon}>
+              <FontAwesomeIcon icon={faClockRotateLeft} />
             </div>
-          ) : error ? (
-            <div className={styles.stateWrapper}>
-              <p className={styles.stateTextError}>{error}</p>
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className={styles.stateWrapper}>
-              <FontAwesomeIcon icon={faClockRotateLeft} className={styles.stateIconEmpty} />
-              <p className={styles.stateText}>
-                {tab === "active"
-                  ? "Tidak ada tugas aktif saat ini."
-                  : tab === "completed"
-                  ? "Belum ada tugas yang selesai."
-                  : "Belum ada data tugas."}
-              </p>
-            </div>
-          ) : (
-            <div className={styles.bookingList}>
-              {filtered.map((item) => (
-                <div
-                  key={item.id}
-                  className={`${styles.bookingCard} ${ACTIVE_STATUSES.includes(item.status) ? styles.bookingCardActive : ""}`}
-                  onClick={() => router.push(`/caregiver/schedule/${item.id}`)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => e.key === "Enter" && router.push(`/caregiver/schedule/${item.id}`)}
-                >
-                  {/* Status bar on left */}
-                  <div className={`${styles.statusBar} ${getStatusClass(item.status, styles)}`} />
+            <span className={styles.emptyTitle}>Tidak ada jadwal</span>
+            <p className={styles.emptyText}>Belum ada tugas untuk tanggal dan filter ini.</p>
+          </div>
+        )}
+      </div>
 
-                  <div className={styles.cardBody}>
-                    {/* Top row */}
-                    <div className={styles.cardTop}>
-                      <span className={styles.patientName}>
-                        {item.patient?.name || "Pasien"}
-                      </span>
-                      <span className={`${styles.statusChip} ${getStatusClass(item.status, styles)}`}>
-                        <FontAwesomeIcon icon={getStatusIcon(item.status)} />
-                        {STATUS_LABEL[item.status] || item.status.replace(/_/g, " ")}
-                      </span>
-                    </div>
-
-                    {/* Facility */}
-                    <p className={styles.facilityName}>
-                      {item.facility?.name || item.facilityName || "—"}
-                    </p>
-                    <p className={styles.facilityAddress}>
-                      {item.facility?.address || item.facilityAddress || ""}
-                    </p>
-
-                    {/* Bottom row */}
-                    <div className={styles.cardBottom}>
-                      <span className={styles.dateText}>
-                        <FontAwesomeIcon icon={faCalendarDays} />
-                        {formatDate(item.scheduledAt || item.createdAt)}
-                      </span>
-                      <span className={styles.bookingType}>
-                        {item.bookingType === "immediate" ? "Segera" : "Terjadwal"}
-                      </span>
-                      <FontAwesomeIcon icon={faChevronRight} className={styles.arrowIcon} />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </main>
-
-      {/* Bottom Nav */}
+      {/* ── Bottom Nav ── */}
       <nav className={styles.bottomNav}>
         <button className={styles.navItem} onClick={() => router.push("/caregiver")}>
           <FontAwesomeIcon icon={faHouse} className={styles.navIcon} />
