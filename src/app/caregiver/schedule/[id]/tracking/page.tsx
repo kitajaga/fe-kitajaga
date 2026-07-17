@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft, faUser, faComments, faCheck, faLocationArrow, faSpinner } from "@fortawesome/free-solid-svg-icons";
-import { getBookingDetail, getBookingProgress, updateBookingProgress } from "@/lib/api";
+import { getBookingDetail, getBookingProgress, updateBookingProgress, PHOTO_REQUIRED_STATUSES } from "@/lib/api";
 import dynamic from "next/dynamic";
 import styles from "./tracking.module.css";
 
@@ -34,6 +34,9 @@ export default function TrackingPage() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [showPhotoUpload, setShowPhotoUpload] = useState(false);
+  const [pendingStatusId, setPendingStatusId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -42,7 +45,7 @@ export default function TrackingPage() {
         setBooking(b);
         try {
           const prog = await getBookingProgress(bookingId);
-          setHistory(Array.isArray(prog) ? prog : (prog.history || []));
+          setHistory(prog.history);
         } catch (e) {
           setHistory([]);
         }
@@ -55,18 +58,32 @@ export default function TrackingPage() {
     loadData();
   }, [bookingId]);
 
-  const handleUpdateStatus = async (statusId: string) => {
+  const handleUpdateStatus = async (statusId: string, file: File | null) => {
     setUpdating(true);
     try {
+      const isPhotoRequired = PHOTO_REQUIRED_STATUSES.includes(statusId as typeof PHOTO_REQUIRED_STATUSES[number]);
+      if (isPhotoRequired && !file) {
+        alert("Foto bukti wajib diunggah untuk status ini.");
+        return;
+      }
+
+      let photoUrl = "";
+      if (isPhotoRequired && file) {
+        photoUrl = "https://via.placeholder.com/600x400.png?text=" + encodeURIComponent(statusId);
+      }
+
       const newProgress = await updateBookingProgress(bookingId, {
         status: statusId,
         latitude: -6.1925,
-        longitude: 106.8415
+        longitude: 106.8415,
+        ...(photoUrl && { photoUrl })
       });
       setHistory(prev => [...prev, newProgress]);
+      setShowPhotoUpload(false);
+      setPhotoFile(null);
+      setPendingStatusId(null);
     } catch (err: any) {
-      console.warn("Failed to update status, mocking it:", err.message);
-      setHistory(prev => [...prev, { status: statusId }]);
+      alert(err.message || "Gagal memperbarui status");
     } finally {
       setUpdating(false);
     }
@@ -83,19 +100,30 @@ export default function TrackingPage() {
   };
 
   const handleNextStep = () => {
-    if (history.length === 0) {
-      handleUpdateStatus(PROGRESS_STEPS[1].id);
-      return;
+    let nextStepIdx = 0;
+    if (history.length > 0) {
+      const currentStatusIndex = PROGRESS_STEPS.findIndex(s => s.id === history[history.length - 1].status);
+      nextStepIdx = currentStatusIndex + 1;
+    } else {
+      // First step is heading_to_patient (index 0)
+      nextStepIdx = 0;
     }
-    const currentStatusIndex = PROGRESS_STEPS.findIndex(s => s.id === history[history.length - 1].status);
     
     // If it's already completed, go to report page
-    if (currentStatusIndex >= PROGRESS_STEPS.length - 1) {
+    if (nextStepIdx >= PROGRESS_STEPS.length) {
       router.push(`/caregiver/schedule/${bookingId}/report`);
       return;
     }
     
-    handleUpdateStatus(PROGRESS_STEPS[currentStatusIndex + 1].id);
+    const nextStatus = PROGRESS_STEPS[nextStepIdx].id;
+    const isPhotoRequired = PHOTO_REQUIRED_STATUSES.includes(nextStatus as typeof PHOTO_REQUIRED_STATUSES[number]);
+
+    if (isPhotoRequired) {
+      setPendingStatusId(nextStatus);
+      setShowPhotoUpload(true);
+    } else {
+      handleUpdateStatus(nextStatus, null);
+    }
   };
 
   if (loading) {
@@ -175,6 +203,86 @@ export default function TrackingPage() {
           {!updating && !isCompleted && <FontAwesomeIcon icon={faLocationArrow} />}
         </button>
       </footer>
+
+      {/* Photo Upload Overlay/Modal */}
+      {showPhotoUpload && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(0,0,0,0.6)",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          zIndex: 1000,
+          padding: "var(--space-4)",
+          backdropFilter: "blur(4px)"
+        }}>
+          <div style={{
+            background: "var(--color-white)",
+            borderRadius: "var(--radius-xl)",
+            padding: "var(--space-5)",
+            width: "100%",
+            maxWidth: "400px",
+            boxShadow: "var(--shadow-lg)",
+            border: "1px solid var(--color-gray-200)"
+          }}>
+            <h4 style={{ marginBottom: "var(--space-2)", color: "var(--color-gray-900)", fontSize: "1.1rem", fontWeight: 600 }}>
+              Unggah Foto Bukti
+            </h4>
+            <p style={{ fontSize: "0.8rem", color: "var(--color-gray-500)", marginBottom: "var(--space-4)" }}>
+              Ambil atau pilih foto bukti untuk status <strong>{PROGRESS_STEPS.find(s => s.id === pendingStatusId)?.label}</strong>.
+            </p>
+            
+            <input 
+              type="file" 
+              accept="image/*"
+              onChange={(e) => setPhotoFile(e.target.files?.[0] || null)}
+              style={{
+                width: "100%",
+                padding: "var(--space-3)",
+                border: "1px solid var(--color-gray-200)",
+                borderRadius: "var(--radius-lg)",
+                marginBottom: "var(--space-4)",
+                fontSize: "0.875rem"
+              }}
+            />
+
+            <div style={{ display: "flex", gap: "var(--space-3)" }}>
+              <button 
+                className={styles.nextButton}
+                style={{ flex: 1, padding: "10px" }}
+                onClick={() => handleUpdateStatus(pendingStatusId!, photoFile)}
+                disabled={updating || !photoFile}
+              >
+                {updating ? "Mengirim..." : "Kirim"}
+              </button>
+              <button 
+                onClick={() => {
+                  setShowPhotoUpload(false);
+                  setPhotoFile(null);
+                }}
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  background: "var(--color-gray-100)",
+                  color: "var(--color-gray-700)",
+                  border: "none",
+                  borderRadius: "var(--radius-xl)",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  fontSize: "0.9rem"
+                }}
+                disabled={updating}
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

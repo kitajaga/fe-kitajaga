@@ -75,8 +75,8 @@ function NewBookingContent() {
           payload.scheduledAt = new Date(datetimeStr).toISOString();
         }
 
-        await createBooking(payload);
-        router.push("/schedule");
+        const result = await createBooking(payload);
+        router.push(`/bookings/${result.id}`);
       } catch (error: any) {
         console.error(error);
         alert(error.message || "Gagal membuat pesanan.");
@@ -84,7 +84,7 @@ function NewBookingContent() {
         setIsLoading(false);
       }
     }
-  }, [step, router, patientId, bookingType, scheduledDate, scheduledTime, facilityName, facilityAddress]);
+  }, [step, router, patientId, bookingType, scheduledDate, scheduledTime, facilityName, facilityAddress, facilityLatitude, facilityLongitude]);
 
   const handlePrev = useCallback(() => {
     if (step > 1) setStep(step - 1);

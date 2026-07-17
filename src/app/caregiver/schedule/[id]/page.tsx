@@ -3,8 +3,19 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowLeft, faMapMarkerAlt, faUser, faNotesMedical, faPhoneAlt, faExclamationTriangle, faCheckCircle, faSpinner } from "@fortawesome/free-solid-svg-icons";
-import { getBookingDetail, acceptBooking, getToken } from "@/lib/api";
+import { 
+  faArrowLeft, 
+  faMapMarkerAlt, 
+  faUser, 
+  faNotesMedical, 
+  faPhoneAlt, 
+  faExclamationTriangle, 
+  faCheckCircle, 
+  faSpinner, 
+  faBookOpen, 
+  faTriangleExclamation 
+} from "@fortawesome/free-solid-svg-icons";
+import { getBookingDetail, acceptBooking, getToken, fetchGuidebook, acknowledgeGuidebook, getSocketBaseUrl } from "@/lib/api";
 import { io } from "socket.io-client";
 import styles from "./detail.module.css";
 
@@ -14,14 +25,33 @@ export default function DetailSchedulePage() {
   const bookingId = params.id as string;
   
   const [booking, setBooking] = useState<any>(null);
+  const [guidebook, setGuidebook] = useState<any>(null);
+  const [guidebookError, setGuidebookError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState("");
 
   const fetchDetail = async () => {
     try {
       const data = await getBookingDetail(bookingId);
       setBooking(data);
+      setGuidebook(null);
+      setGuidebookError(null);
+      
+      // Fetch Guidebook
+      if (data.guidebookId) {
+        try {
+          const gb = await fetchGuidebook(bookingId);
+          setGuidebook(gb);
+          setGuidebookError(null);
+        } catch (e) {
+          console.warn("Guidebook not found or error", e);
+          setGuidebookError("Guidebook sedang diproses atau belum tersedia. Tunggu beberapa saat lalu muat ulang halaman.");
+        }
+      } else {
+        setGuidebookError("Guidebook belum tersedia untuk booking ini.");
+      }
     } catch (err: any) {
       console.warn("Using mock data due to error:", err.message);
       setBooking({
@@ -50,7 +80,7 @@ export default function DetailSchedulePage() {
     fetchDetail();
 
     const token = getToken();
-    const socketUrl = process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") || "https://be-kitajaga-production.up.railway.app";
+    const socketUrl = getSocketBaseUrl();
     const socket = io(socketUrl, { auth: { token } });
 
     socket.on("connect", () => {
@@ -82,7 +112,28 @@ export default function DetailSchedulePage() {
     }
   };
 
+  const handleAcknowledge = async () => {
+    if (!guidebook) return;
+    setActionLoading(true);
+    try {
+      await acknowledgeGuidebook(guidebook.id);
+      setGuidebook({ ...guidebook, acknowledgedByCaregiver: true });
+      setBooking({ ...booking, guidebookAcknowledged: true });
+      alert("Guidebook berhasil disetujui.");
+    } catch (e: any) {
+      alert(e.message || "Gagal menyetujui Guidebook");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const isGuidebookAcknowledged = Boolean(booking?.guidebookAcknowledged ?? guidebook?.acknowledgedByCaregiver);
+
   const handleStart = () => {
+    if (!isGuidebookAcknowledged) {
+      alert("Harap baca dan setujui Guidebook sebelum memulai layanan.");
+      return;
+    }
     // Start CG event -> go to tracking & chat
     router.push(`/caregiver/schedule/${bookingId}/tracking`);
   };
@@ -175,6 +226,53 @@ export default function DetailSchedulePage() {
           </div>
         </div>
 
+        {/* AI Guidebook */}
+        {guidebook ? (
+          <div className={styles.card}>
+            <h2 className={styles.cardTitle}>
+              <FontAwesomeIcon icon={faBookOpen} className={styles.icon} />
+              AI Guidebook
+            </h2>
+            <p style={{ fontSize: "0.875rem", marginBottom: "0.75rem", opacity: 0.9 }}>
+              {guidebook.quickSummary}
+            </p>
+            
+            <div style={{ marginBottom: "0.5rem" }}><strong>Do (Harus Dilakukan):</strong></div>
+            <ul style={{ paddingLeft: "1.25rem", marginBottom: "1rem", fontSize: "0.875rem", lineHeight: 1.5 }}>
+              {guidebook.do?.map((item: string, idx: number) => (
+                <li key={idx} style={{ marginBottom: "0.25rem" }}>{item}</li>
+              ))}
+            </ul>
+
+            <div style={{ marginBottom: "0.5rem" }}><strong>Don&apos;t (Dilarang):</strong></div>
+            <ul style={{ paddingLeft: "1.25rem", marginBottom: "1rem", fontSize: "0.875rem", lineHeight: 1.5, color: "#e53e3e" }}>
+              {guidebook.dont?.map((item: string, idx: number) => (
+                <li key={idx} style={{ marginBottom: "0.25rem" }}>{item}</li>
+              ))}
+            </ul>
+
+            <div style={{ marginTop: "1rem", padding: "0.75rem", background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: "8px", color: "#991B1B" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                <FontAwesomeIcon icon={faTriangleExclamation} color="#dc2626" /> 
+                <strong>Warning Signs</strong>
+              </div>
+              {guidebook.warningSigns?.map((ws: string, idx: number) => (
+                <div key={idx} style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>• {ws}</div>
+              ))}
+            </div>
+
+            <div style={{ marginTop: "1rem", fontSize: "0.75rem" }}>
+              <strong>Kontak Darurat: </strong> {guidebook.emergencyContact?.name} ({guidebook.emergencyContact?.phone})
+            </div>
+          </div>
+        ) : (
+          <div className={styles.card}>
+            <span style={{ color: "var(--color-gray-500)", fontSize: "0.875rem" }}>
+              {guidebookError || "Guidebook belum tersedia."}
+            </span>
+          </div>
+        )}
+
         {/* Emergency Contact */}
         {booking.patient?.emergencyContact && (
           <div className={styles.card}>
@@ -198,11 +296,33 @@ export default function DetailSchedulePage() {
       </main>
 
       {/* Footer Action */}
-      <footer className={styles.footer}>
+      <footer className={styles.footer} style={{ position: "sticky", bottom: 0 }}>
         {booking.status === "pending_matching" ? (
-          <button className={styles.startButton} onClick={handleAccept} disabled={accepting}>
-            {accepting ? <FontAwesomeIcon icon={faSpinner} spin /> : "Terima Pesanan"}
-          </button>
+          isGuidebookAcknowledged ? (
+            <button className={styles.startButton} onClick={handleAccept} disabled={accepting}>
+              {accepting ? <FontAwesomeIcon icon={faSpinner} spin /> : "Terima Pesanan"}
+            </button>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+              <div className={styles.alertBox} style={{ marginBottom: "0.5rem" }}>
+                <FontAwesomeIcon icon={faTriangleExclamation} className={styles.alertIcon} />
+                <span>Harap baca dan setujui Guidebook sebelum menerima atau memulai layanan.</span>
+              </div>
+              <button className={styles.startButton} onClick={handleAcknowledge} disabled={actionLoading || !guidebook}>
+                {actionLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faCheckCircle} />} Saya Telah Membaca & Paham
+              </button>
+            </div>
+          )
+        ) : !isGuidebookAcknowledged ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            <div className={styles.alertBox} style={{ marginBottom: "0.5rem" }}>
+              <FontAwesomeIcon icon={faTriangleExclamation} className={styles.alertIcon} />
+              <span>Harap setujui Guidebook sebelum memulai layanan.</span>
+            </div>
+            <button className={styles.startButton} onClick={handleAcknowledge} disabled={actionLoading || !guidebook}>
+              {actionLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faCheckCircle} />} Saya Telah Membaca & Paham
+            </button>
+          </div>
         ) : (
           <button className={styles.startButton} onClick={handleStart}>
             Mulai Layanan

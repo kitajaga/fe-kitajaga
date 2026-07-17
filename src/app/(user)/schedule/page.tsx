@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLocationDot, faCircleCheck, faSpinner, faCircleXmark, faCalendarDays, faClockRotateLeft } from "@fortawesome/free-solid-svg-icons";
 import { useApi } from "@/hooks/useApi";
-import { fetchBookings } from "@/lib/api";
+import { fetchBookings, getToken, getSocketBaseUrl } from "@/lib/api";
+import { io } from "socket.io-client";
 import { BOOKING_STATUS_LABELS } from "@/lib/constants";
 import styles from "./activity.module.css";
 
@@ -89,8 +90,24 @@ export default function SchedulePage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [filterTab, setFilterTab] = useState<BookingCategory | "all">("all");
   
-  const { data: bookingsData, loading: loadingBookings } = useApi(fetchBookings);
+  const { data: bookingsData, loading: loadingBookings, refetch: refetchBookings } = useApi(fetchBookings);
   
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+
+    const socket = io(getSocketBaseUrl(), { auth: { token } });
+    const handleUpdate = () => { void refetchBookings(); };
+
+    socket.on("booking_status_updated", handleUpdate);
+    socket.on("booking_updated", handleUpdate);
+    socket.on("booking_status_changed", handleUpdate);
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [refetchBookings]);
+
   const calendarDates = useMemo(() => generateCalendarDates(), []);
 
   // Filter bookings by selected date AND selected tab
