@@ -9,6 +9,7 @@ import { faChevronRight } from "@fortawesome/free-solid-svg-icons/faChevronRight
 import { faSpinner } from "@fortawesome/free-solid-svg-icons/faSpinner";
 import { useApi } from "@/hooks/useApi";
 import { fetchPatients } from "@/lib/api";
+import { MockPatient } from "@/lib/mockData";
 import styles from "./patients.module.css";
 
 function getRiskClass(risk: string) {
@@ -54,7 +55,7 @@ export default function PatientsListPage() {
       {/* ── List ── */}
       <div className={styles.listContainer}>
         {patients && patients.length > 0 ? (
-          patients.map((patient) => (
+          patients.map((patient: MockPatient) => (
             <button
               key={patient.id}
               className={styles.patientCard}
