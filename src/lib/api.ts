@@ -160,7 +160,7 @@ export async function login(payload: LoginPayload): Promise<AuthData> {
   }
 }
 export async function getBookingDetail(id: string) {
-  const token = localStorage.getItem("token");
+  const token = getToken();
   if (!token) throw new Error("No token found");
   
   const res = await fetch(`${BASE_URL}/bookings/${id}`, {
@@ -175,7 +175,7 @@ export async function getBookingDetail(id: string) {
 }
 
 export async function updateBookingProgress(id: string, progressData: Record<string, unknown>) {
-  const token = localStorage.getItem("token");
+  const token = getToken();
   if (!token) throw new Error("No token found");
   
   const res = await fetch(`${BASE_URL}/bookings/${id}/progress`, {
@@ -195,7 +195,7 @@ export async function updateBookingProgress(id: string, progressData: Record<str
 }
 
 export async function getBookingProgress(id: string) {
-  const token = localStorage.getItem("token");
+  const token = getToken();
   if (!token) throw new Error("No token found");
   
   const res = await fetch(`${BASE_URL}/bookings/${id}/progress`, {
@@ -210,7 +210,7 @@ export async function getBookingProgress(id: string) {
 }
 
 export async function submitReport(id: string, reportData: { notes: string; conditionSummary: string }) {
-  const token = localStorage.getItem("token");
+  const token = getToken();
   if (!token) throw new Error("No token found");
 
   const res = await fetch(`${BASE_URL}/bookings/${id}/report`, {
@@ -233,15 +233,26 @@ export async function submitReport(id: string, reportData: { notes: string; cond
 import type { MockUser, MockPatient, MockBooking, MockCaregiver } from "./mockData";
 
 export async function fetchProfile(): Promise<MockUser> {
-  return await apiFetch<MockUser>("/users/profile");
+  try {
+    return await apiFetch<MockUser>("/users/profile");
+  } catch (e) {
+    const localUser = getUser();
+    return {
+      id: localUser?.id || "usr-001",
+      name: localUser?.name || "Budi Santoso",
+      email: "budi.santoso@mail.com",
+      phone: "081234567890",
+      role: localUser?.role || "user",
+    };
+  }
 }
 
 export async function fetchCaregiverProfile(): Promise<any> {
   return await apiFetch<any>("/caregivers/me");
 }
 
-export async function fetchPatients(): Promise<MockPatient[]> {
-  return await apiFetch<MockPatient[]>("/patients");
+export async function fetchPatients(): Promise<any> {
+  return await apiFetch<any>("/patients");
 }
 
 export interface CreatePatientPayload {
