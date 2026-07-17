@@ -4,23 +4,29 @@
  */
 
 const DEFAULT_API_BASE = "http://localhost:4000/api";
+const DEFAULT_SOCKET_BASE = "https://be-kitajaga-production.up.railway.app";
 
 export function getApiBaseUrl(): string {
   return process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_BASE;
 }
 
+/** Booking statuses where user & caregiver can chat */
+export const CHAT_ACTIVE_STATUSES = ["matched", "paid", "scheduled", "in_progress"] as const;
+
 export function getSocketBaseUrl(): string {
-  const configured = process.env.NEXT_PUBLIC_API_URL || "/api";
-
-  if (typeof window !== "undefined" && !configured.startsWith("http")) {
-    return window.location.origin;
+  const explicit = process.env.NEXT_PUBLIC_SOCKET_URL;
+  if (explicit) {
+    return explicit.replace(/\/$/, "");
   }
 
-  if (configured.startsWith("http")) {
-    return configured.replace(/\/api(?:\/v1)?\/?$/, "");
+  const apiBase = getApiBaseUrl();
+
+  if (apiBase.startsWith("http")) {
+    return apiBase.replace(/\/api(?:\/v1)?\/?$/, "");
   }
 
-  return "https://be-kitajaga-production.up.railway.app";
+  // REST proxied via Next.js rewrite — Socket.IO must connect to backend directly
+  return DEFAULT_SOCKET_BASE;
 }
 
 const BASE_URL = getApiBaseUrl();

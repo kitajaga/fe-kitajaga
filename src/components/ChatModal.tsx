@@ -14,14 +14,14 @@ interface ChatModalProps {
 export default function ChatModal({ bookingId, onClose }: ChatModalProps) {
   const [messages, setMessages] = useState<any[]>([]);
   const [inputStr, setInputStr] = useState("");
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const currentUser = getUser();
 
   // Fetch history & Init socket
   useEffect(() => {
-    let activeSocket: Socket;
+    let activeSocket: Socket | null = null;
 
     const init = async () => {
       try {
@@ -32,27 +32,63 @@ export default function ChatModal({ bookingId, onClose }: ChatModalProps) {
       }
 
       const token = getToken();
+      if (!token) {
+        console.warn("Chat modal: token missing, socket connection skipped.");
+        return;
+      }
+
       const socketUrl = getSocketBaseUrl();
-      
+
       activeSocket = io(socketUrl, {
         auth: { token }
       });
+      socketRef.current = activeSocket;
 
       activeSocket.on("connect", () => {
-        activeSocket.emit("join_booking", bookingId);
+        activeSocket?.emit("join_booking", bookingId);
       });
 
       activeSocket.on("new_message", (msg) => {
-        setMessages((prev) => [...prev, msg]);
+        setMessages((prev) => {
+          if (prev.some((item) => item.id === msg.id)) return prev;
+          return [...prev, msg];
+        });
       });
 
-      setSocket(activeSocket);
+      activeSocket.on("progress_update", (data: { statusLabel?: string; status?: string }) => {
+        const systemMessage = {
+          id: `progress-${Date.now()}`,
+          bookingId,
+          senderId: "system",
+          senderRole: "system",
+          message: `📍 Update: ${data.statusLabel || data.status || "Layanan sedang berlangsung"}`,
+          sentAt: new Date().toISOString(),
+          type: "progress_update",
+        };
+
+        setMessages((prev) => {
+          if (prev.some((item) => item.id === systemMessage.id)) return prev;
+          return [...prev, systemMessage];
+        });
+      });
+
+      activeSocket.on("error_message", (message: string) => {
+        console.error("Socket chat error:", message);
+      });
+
+      activeSocket.on("connect_error", (err) => {
+        console.error("Socket connect error:", err.message);
+      });
     };
 
-    init();
+    void init();
 
     return () => {
-      if (activeSocket) activeSocket.disconnect();
+      if (activeSocket) {
+        activeSocket.removeAllListeners();
+        activeSocket.disconnect();
+      }
+      socketRef.current = null;
     };
   }, [bookingId]);
 
@@ -63,14 +99,14 @@ export default function ChatModal({ bookingId, onClose }: ChatModalProps) {
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
+    const socket = socketRef.current;
     if (!inputStr.trim() || !socket) return;
 
     socket.emit("send_message", {
       bookingId,
       message: inputStr,
     });
-    
-    // Optimistic UI update could be added here, but waiting for server is safer
+
     setInputStr("");
   };
 
@@ -122,8 +158,9 @@ export default function ChatModal({ bookingId, onClose }: ChatModalProps) {
         }}>
           {messages.map((msg, idx) => {
             const isMe = msg.senderId === currentUser?.id;
+            const key = msg.id || `chat-${bookingId}-${idx}`;
             return (
-              <div key={idx} style={{
+              <div key={key} style={{
                 alignSelf: isMe ? "flex-end" : "flex-start",
                 backgroundColor: isMe ? "var(--color-primary)" : "white",
                 color: isMe ? "white" : "var(--color-text-primary)",
