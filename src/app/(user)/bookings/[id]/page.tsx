@@ -16,7 +16,7 @@ import { faHospital } from "@fortawesome/free-solid-svg-icons/faHospital";
 import { faRotateRight } from "@fortawesome/free-solid-svg-icons/faRotateRight";
 import { faFileLines } from "@fortawesome/free-solid-svg-icons/faFileLines";
 import { faUserInjured } from "@fortawesome/free-solid-svg-icons/faUserInjured";
-import { getBookingDetail, getBookingProgress, fetchPatientById } from "@/lib/api";
+import { getBookingDetail, getBookingProgress, fetchPatientById, chargePayment, mockSettlePayment } from "@/lib/api";
 import { BOOKING_STATUS_LABELS, PROGRESS_LABELS } from "@/lib/constants";
 import styles from "../bookings.module.css";
 
@@ -36,6 +36,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
   const router = useRouter();
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   const [booking, setBooking] = useState<any>(null);
   const [patient, setPatient] = useState<any>(null);
@@ -78,6 +79,35 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
     await new Promise((r) => setTimeout(r, 800));
     router.push("/dashboard");
   }, [router]);
+
+  const handlePay = async () => {
+    setIsProcessingPayment(true);
+    try {
+      const res = await chargePayment(id);
+      if (res && res.redirectUrl) {
+        window.open(res.redirectUrl, "_blank");
+      } else {
+        alert("Gagal mendapatkan link pembayaran.");
+      }
+    } catch (err: any) {
+      alert("Error memproses pembayaran: " + err.message);
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+
+  const handleMockPay = async () => {
+    setIsProcessingPayment(true);
+    try {
+      await mockSettlePayment(id);
+      alert("Simulasi pembayaran berhasil diselesaikan!");
+      window.location.reload();
+    } catch (err: any) {
+      alert("Error memproses mock pembayaran: " + err.message);
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -205,8 +235,14 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
 
         {/* ── Payment Button (matched) ── */}
         {booking.status === "matched" && (
-          <button className={styles.primaryAction} style={{ padding: "16px" }} id="booking-pay-btn">
-            <FontAwesomeIcon icon={faCreditCard} /> Bayar Rp{booking.payment.amount.toLocaleString("id-ID")}
+          <button 
+            className={styles.primaryAction} 
+            style={{ padding: "16px" }} 
+            id="booking-pay-btn"
+            onClick={handlePay}
+            disabled={isProcessingPayment}
+          >
+            <FontAwesomeIcon icon={faCreditCard} /> {isProcessingPayment ? "Memproses..." : `Bayar Rp${booking.payment?.amount?.toLocaleString("id-ID") || " -"}`}
           </button>
         )}
 
@@ -329,22 +365,56 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
         )}
 
         {/* ── Payment Info ── */}
-        {booking.payment && (
-          <div className={styles.infoCard}>
-            <h3 className={styles.infoCardTitle}>
-              <span className={styles.infoCardTitleIcon}><FontAwesomeIcon icon={faCreditCard} /></span>
-              Pembayaran
-            </h3>
-            <div className={styles.infoRow}>
-              <span className={styles.infoLabel}>Total</span>
-              <span className={styles.infoValue}>Rp{booking.payment.amount?.toLocaleString("id-ID")}</span>
+        <div className={styles.infoCard}>
+          <h3 className={styles.infoCardTitle}>
+            <span className={styles.infoCardTitleIcon}><FontAwesomeIcon icon={faCreditCard} /></span>
+            Pembayaran
+          </h3>
+          {booking.payment ? (
+            <>
+              <div className={styles.infoRow}>
+                <span className={styles.infoLabel}>Total</span>
+                <span className={styles.infoValue}>Rp{booking.payment.amount?.toLocaleString("id-ID") || " -"}</span>
+              </div>
+              <div className={styles.infoRow}>
+                <span className={styles.infoLabel}>Status</span>
+                <span className={styles.infoValue} style={{ textTransform: "capitalize" }}>{booking.payment.status}</span>
+              </div>
+              
+              {booking.payment.status === "pending" && (
+                <div style={{ display: "flex", gap: "10px", marginTop: "1rem", flexDirection: "column" }}>
+                  <button 
+                    onClick={handlePay} 
+                    disabled={isProcessingPayment}
+                    style={{ padding: "12px", background: "var(--color-primary)", color: "white", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: 600 }}
+                  >
+                    {isProcessingPayment ? "Memproses..." : "Bayar via Midtrans"}
+                  </button>
+                  <button 
+                    onClick={handleMockPay} 
+                    disabled={isProcessingPayment}
+                    style={{ padding: "12px", background: "transparent", color: "var(--color-primary)", border: "1px dashed var(--color-primary)", borderRadius: "8px", cursor: "pointer", fontWeight: 600 }}
+                  >
+                    Simulasi Selesai (Mock)
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div style={{ textAlign: "center", padding: "1rem 0" }}>
+              <p style={{ color: "var(--text-secondary)", marginBottom: "1rem", fontSize: "0.9rem" }}>
+                Tagihan pembayaran belum tersedia atau masih dalam proses perhitungan.
+              </p>
+              <button 
+                onClick={handlePay} 
+                disabled={isProcessingPayment}
+                style={{ padding: "12px", background: "var(--color-primary)", color: "white", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: 600, width: "100%" }}
+              >
+                {isProcessingPayment ? "Memproses..." : "Buat Tagihan & Bayar"}
+              </button>
             </div>
-            <div className={styles.infoRow}>
-              <span className={styles.infoLabel}>Status</span>
-              <span className={styles.infoValue} style={{ textTransform: "capitalize" }}>{booking.payment.status}</span>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </>
   );
