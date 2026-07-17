@@ -31,7 +31,7 @@ function NewBookingContent() {
   const [isLoading, setIsLoading] = useState(false);
 
   const { data: patients, loading: loadingPatients } = useApi(fetchPatients);
-  const selectedPatient = (patients || []).find((p) => p.id === patientId);
+  const selectedPatient = (patients || []).find((p: any) => p.id === patientId);
 
   const canNext = useCallback((): boolean => {
     switch (step) {
@@ -114,7 +114,7 @@ function NewBookingContent() {
             </div>
           ) : patients && patients.length > 0 ? (
             <div className={styles.selectionList}>
-              {patients.map((p) => (
+              {patients.map((p: any) => (
                 <button
                   key={p.id}
                   className={`${styles.selectionCard} ${patientId === p.id ? styles.selectionCardActive : ""}`}

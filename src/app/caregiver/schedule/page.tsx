@@ -48,7 +48,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 type FilterTab = "all" | "active" | "completed" | "other";
 
-const ACTIVE_STATUSES = ["matched", "paid", "scheduled", "in_progress"];
+const ACTIVE_STATUSES = ["matched", "paid", "scheduled", "in_progress", "heading_to_patient", "picked_up_patient", "heading_to_facility", "arrived_registration", "waiting_in_queue", "in_consultation", "heading_back"];
 const COMPLETED_STATUSES = ["completed", "reported"];
 
 function getFilteredBookings(bookings: Booking[], tab: FilterTab): Booking[] {
@@ -92,9 +92,25 @@ function formatDate(dateStr: string | null): string {
   });
 }
 
+// ── Helpers ──
+function generateCalendarDates() {
+  const dates = [];
+  const today = new Date();
+  for (let i = -7; i <= 14; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    dates.push(d);
+  }
+  return dates;
+}
+
+const WEEKDAYS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
+
 // ── Component ──
 export default function CaregiverSchedulePage() {
   const router = useRouter();
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [tab, setTab] = useState<FilterTab>("all");
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -115,13 +131,22 @@ export default function CaregiverSchedulePage() {
     load();
   }, []);
 
-  const filtered = getFilteredBookings(bookings, tab);
+  const calendarDates = generateCalendarDates();
+
+  const filteredBookingsByDate = bookings.filter(b => {
+    const bDateStr = b.scheduledAt || b.createdAt;
+    if (!bDateStr) return false;
+    const bDate = new Date(bDateStr);
+    return bDate.toDateString() === selectedDate.toDateString();
+  });
+
+  const filtered = getFilteredBookings(filteredBookingsByDate, tab);
 
   const tabItems: { key: FilterTab; label: string; count: number }[] = [
-    { key: "all", label: "Semua", count: bookings.length },
-    { key: "active", label: "Aktif", count: getFilteredBookings(bookings, "active").length },
-    { key: "completed", label: "Selesai", count: getFilteredBookings(bookings, "completed").length },
-    { key: "other", label: "Lainnya", count: getFilteredBookings(bookings, "other").length },
+    { key: "all", label: "Semua", count: filteredBookingsByDate.length },
+    { key: "active", label: "Aktif", count: getFilteredBookings(filteredBookingsByDate, "active").length },
+    { key: "completed", label: "Selesai", count: getFilteredBookings(filteredBookingsByDate, "completed").length },
+    { key: "other", label: "Lainnya", count: getFilteredBookings(filteredBookingsByDate, "other").length },
   ];
 
   return (
@@ -134,6 +159,31 @@ export default function CaregiverSchedulePage() {
           </div>
           <h1 className={styles.title}>Riwayat Tugas</h1>
         </header>
+
+        {/* ── Calendar Filter ── */}
+        <div className={styles.calendarStrip}>
+          <div className={styles.monthHeader}>
+            <FontAwesomeIcon icon={faCalendarDays} className={styles.monthIcon} />
+            {MONTHS[selectedDate.getMonth()]} {selectedDate.getFullYear()}
+          </div>
+          <div className={styles.datesRow}>
+            {calendarDates.map((date, idx) => {
+              const isSelected = date.toDateString() === selectedDate.toDateString();
+              const isToday = date.toDateString() === new Date().toDateString();
+              return (
+                <button
+                  key={idx}
+                  className={`${styles.dateItem} ${isSelected ? styles.dateItemSelected : ""} ${isToday && !isSelected ? styles.dateItemToday : ""}`}
+                  onClick={() => setSelectedDate(date)}
+                >
+                  <span className={styles.dateDayName}>{WEEKDAYS[date.getDay()]}</span>
+                  <span className={styles.dateDayNumber}>{date.getDate()}</span>
+                  {isToday && <span className={styles.todayDot} />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         {/* Filter Tabs */}
         <div className={styles.tabsBar}>
