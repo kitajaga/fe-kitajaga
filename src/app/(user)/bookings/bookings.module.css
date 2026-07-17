@@ -726,7 +726,7 @@
 .submitRatingButton {
   width: 100%;
   padding: var(--space-4);
-  background: var(--gradient-brand);
+  background: var(--color-primary);
   color: var(--color-white);
   font-size: var(--font-size-base);
   font-weight: 600;
@@ -754,7 +754,7 @@
 .primaryAction {
   flex: 1;
   padding: var(--space-3) var(--space-4);
-  background: var(--gradient-brand);
+  background: var(--color-primary);
   color: var(--color-white);
   font-size: var(--font-size-sm);
   font-weight: 600;
