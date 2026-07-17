@@ -30,6 +30,10 @@ export default function CaregiverBookingDetailPage({ params }: { params: Promise
   const [reportNotes, setReportNotes] = useState("");
   const [reportSummary, setReportSummary] = useState("");
   const [showChat, setShowChat] = useState(false);
+  const [pendingProgress, setPendingProgress] = useState<{ status: string; photoRequired: boolean } | null>(null);
+  const [progressNote, setProgressNote] = useState("");
+  const [progressPhoto, setProgressPhoto] = useState<File | null>(null);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
 
   const PROGRESS_ORDER = [
     "heading_to_patient",
@@ -95,11 +99,44 @@ export default function CaregiverBookingDetailPage({ params }: { params: Promise
     }
   };
 
-  const handleUpdateProgress = async (nextStatus: string) => {
+  const handleUpdateProgressClick = (nextStatus: string) => {
+    const photoRequired = ["picked_up_patient", "arrived_registration", "in_consultation", "completed"].includes(nextStatus);
+    setPendingProgress({ status: nextStatus, photoRequired });
+    setProgressNote("");
+    setProgressPhoto(null);
+    setIsCameraOpen(photoRequired);
+  };
+
+  const submitUpdateProgress = async () => {
+    if (!pendingProgress) return;
+    
+    if (pendingProgress.photoRequired && !progressPhoto) {
+      alert("Foto wajib diunggah untuk status ini.");
+      return;
+    }
+
     try {
       setActionLoading(true);
-      await updateBookingProgress(id, { status: nextStatus, latitude: 0, longitude: 0 }); // In a real app, use Geolocation API here
-      setBooking({ ...booking, status: nextStatus });
+      // Simulate photo upload to get a URL
+      let photoUrl = "";
+      if (pendingProgress.photoRequired && progressPhoto) {
+        // In real app, upload `progressPhoto` to S3/Cloudinary and get URL
+        // Here we mock it
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        photoUrl = "https://via.placeholder.com/600x400.png?text=Progress+Photo";
+      }
+
+      await updateBookingProgress(id, { 
+        status: pendingProgress.status, 
+        latitude: -6.200000, 
+        longitude: 106.816666, 
+        note: progressNote,
+        ...(photoUrl && { photoUrl })
+      });
+      
+      setBooking({ ...booking, status: pendingProgress.status });
+      setPendingProgress(null);
+      setIsCameraOpen(false);
     } catch (e: any) {
       alert(e.message || "Gagal update progress");
     } finally {
@@ -310,7 +347,7 @@ export default function CaregiverBookingDetailPage({ params }: { params: Promise
                   <button 
                     key={status}
                     className={styles.primaryAction}
-                    onClick={() => handleUpdateProgress(status)}
+                    onClick={() => handleUpdateProgressClick(status)}
                     disabled={actionLoading}
                   >
                     {actionLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : <FontAwesomeIcon icon={faCheckCircle} />} 
@@ -321,6 +358,65 @@ export default function CaregiverBookingDetailPage({ params }: { params: Promise
               return null;
             })}
           </div>
+
+          {/* Pending Progress Upload Form */}
+          {pendingProgress && (
+            <div style={{ marginTop: "var(--space-4)", padding: "var(--space-3)", border: "1px dashed var(--color-border)", borderRadius: "var(--radius-md)" }}>
+              <h4 style={{ marginBottom: "var(--space-2)" }}>Update: {PROGRESS_LABELS[pendingProgress.status]}</h4>
+              
+              {pendingProgress.photoRequired && (
+                <div style={{ marginBottom: "var(--space-3)" }}>
+                  <label style={{ fontSize: "var(--font-size-sm)", fontWeight: "600", display: "block", marginBottom: "var(--space-2)" }}>
+                    Foto Bukti (Wajib)
+                  </label>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    capture="environment"
+                    onChange={(e) => setProgressPhoto(e.target.files?.[0] || null)}
+                    style={{ width: "100%", padding: "var(--space-2)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)" }}
+                  />
+                  {progressPhoto && (
+                    <span style={{ fontSize: "var(--font-size-xs)", color: "var(--color-success)", display: "block", marginTop: "var(--space-1)" }}>
+                      ✓ Foto dipilih
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <div style={{ marginBottom: "var(--space-3)" }}>
+                <label style={{ fontSize: "var(--font-size-sm)", fontWeight: "600", display: "block", marginBottom: "var(--space-2)" }}>
+                  Catatan (Opsional)
+                </label>
+                <input 
+                  type="text" 
+                  value={progressNote}
+                  onChange={(e) => setProgressNote(e.target.value)}
+                  placeholder="Cth: Sedang di perjalanan..."
+                  style={{ width: "100%", padding: "var(--space-3)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)" }}
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: "var(--space-2)" }}>
+                <button 
+                  className={styles.primaryAction} 
+                  style={{ flex: 1 }} 
+                  onClick={submitUpdateProgress}
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : "Kirim Update"}
+                </button>
+                <button 
+                  className={styles.secondaryAction} 
+                  style={{ flex: 1 }}
+                  onClick={() => setPendingProgress(null)}
+                  disabled={actionLoading}
+                >
+                  Batal
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
