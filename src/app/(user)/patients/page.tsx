@@ -50,6 +50,9 @@ export default function PatientsListPage() {
           <FontAwesomeIcon icon={faArrowLeft} />
         </button>
         <h1 className={styles.pageTitle}>Daftar Pasien</h1>
+        <button className={styles.addButton} onClick={() => router.push("/patients/new")} aria-label="Tambah Pasien" id="patients-add-btn">
+          <FontAwesomeIcon icon={faPlus} style={{ marginRight: "6px" }} /> Tambah Pasien
+        </button>
       </div>
 
       {/* ── List ── */}
