@@ -16,7 +16,8 @@ import { faHospital } from "@fortawesome/free-solid-svg-icons/faHospital";
 import { faRotateRight } from "@fortawesome/free-solid-svg-icons/faRotateRight";
 import { faFileLines } from "@fortawesome/free-solid-svg-icons/faFileLines";
 import { faUserInjured } from "@fortawesome/free-solid-svg-icons/faUserInjured";
-import { getBookingDetail, getBookingProgress, fetchPatientById } from "@/lib/api";
+import ChatModal from "@/components/ChatModal";
+import { getBookingDetail, getBookingProgress, fetchPatientById, rateBooking } from "@/lib/api";
 import { BOOKING_STATUS_LABELS, PROGRESS_LABELS } from "@/lib/constants";
 import styles from "../bookings.module.css";
 
@@ -34,8 +35,6 @@ const PROGRESS_ORDER = [
 export default function BookingDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const [rating, setRating] = useState(0);
-  const [review, setReview] = useState("");
 
   const [booking, setBooking] = useState<any>(null);
   const [patient, setPatient] = useState<any>(null);
@@ -43,6 +42,10 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
   const [progressList, setProgressList] = useState<any[]>([]);
   const [report, setReport] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [rating, setRating] = useState<number>(0);
+  const [review, setReview] = useState("");
+  const [showChat, setShowChat] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -59,6 +62,13 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
         try {
           const prog = await getBookingProgress(id);
           setProgressList(Array.isArray(prog) ? prog : []);
+          
+          if (b.status === "completed" || b.status === "reported") {
+            const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1"}/bookings/${id}/report`, {
+              headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+            }).then(res => res.json()).catch(() => null);
+            if (r?.success) setReport(r.data);
+          }
         } catch (e) { console.error(e); }
       } catch (e) {
         console.error("Failed to load booking details", e);
@@ -73,11 +83,23 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
   const latestProgress = progressList[progressList.length - 1];
   const latestIdx = latestProgress ? PROGRESS_ORDER.indexOf(latestProgress.status) : -1;
 
-  const handleSubmitRating = useCallback(async () => {
-    // POST /bookings/:id/rate
-    await new Promise((r) => setTimeout(r, 800));
-    router.push("/dashboard");
-  }, [router]);
+  const handleSubmitRating = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (rating === 0) {
+      alert("Pilih rating bintang terlebih dahulu.");
+      return;
+    }
+    try {
+      setActionLoading(true);
+      await rateBooking(id, rating, review);
+      alert("Terima kasih atas ulasan Anda!");
+      window.location.reload();
+    } catch (err: any) {
+      alert(err.message || "Gagal mengirim rating");
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -192,7 +214,7 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
             </div>
             {booking.status === "in_progress" && (
               <div className={styles.actionRow}>
-                <button className={styles.primaryAction} id="booking-chat-btn">
+                <button className={styles.primaryAction} id="booking-chat-btn" onClick={() => setShowChat(true)}>
                   <FontAwesomeIcon icon={faComments} /> Chat
                 </button>
                 <button className={styles.secondaryAction} id="booking-reschedule-btn">
@@ -205,8 +227,14 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
 
         {/* ── Payment Button (matched) ── */}
         {booking.status === "matched" && (
-          <button className={styles.primaryAction} style={{ padding: "16px" }} id="booking-pay-btn">
-            <FontAwesomeIcon icon={faCreditCard} /> Bayar Rp{booking.payment.amount.toLocaleString("id-ID")}
+          <button 
+            className={styles.primaryAction} 
+            style={{ padding: "16px" }} 
+            id="booking-pay-btn"
+            onClick={() => alert("Fitur pembayaran (Midtrans) sedang dalam pengembangan.")}
+          >
+            <FontAwesomeIcon icon={faCreditCard} /> 
+            {` Bayar Rp${(booking.payment?.amount || 150000).toLocaleString("id-ID")}`}
           </button>
         )}
 
@@ -345,7 +373,79 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
             </div>
           </div>
         )}
+
+        {/* ── Report & Rating (reported/completed) ── */}
+        {(booking.status === "reported" || booking.status === "completed") && (
+          <div className={styles.infoCard}>
+            <h3 className={styles.infoCardTitle}>
+              <span className={styles.infoCardTitleIcon}><FontAwesomeIcon icon={faFileLines} /></span>
+              Laporan Caregiver
+            </h3>
+            {report ? (
+              <div style={{ marginBottom: "var(--space-4)" }}>
+                <div style={{ marginBottom: "var(--space-2)" }}>
+                  <span style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-secondary)" }}>Ringkasan Kondisi</span>
+                  <p style={{ fontWeight: 600 }}>{report.conditionSummary}</p>
+                </div>
+                <div>
+                  <span style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-secondary)" }}>Catatan Tambahan</span>
+                  <p style={{ background: "rgba(0,0,0,0.03)", padding: "var(--space-2)", borderRadius: "var(--radius-md)", fontSize: "var(--font-size-sm)" }}>
+                    {report.notes}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-secondary)", marginBottom: "var(--space-4)" }}>
+                Laporan belum tersedia atau gagal dimuat.
+              </p>
+            )}
+
+            {booking.status === "reported" && (
+              <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "var(--space-4)" }}>
+                <h4 style={{ marginBottom: "var(--space-2)", fontSize: "var(--font-size-md)" }}>Beri Penilaian</h4>
+                <form onSubmit={handleSubmitRating} style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+                  <div style={{ display: "flex", gap: "var(--space-2)", fontSize: "24px", color: "var(--color-text-secondary)" }}>
+                    {[1, 2, 3, 4, 5].map(star => (
+                      <FontAwesomeIcon 
+                        key={star} 
+                        icon={faStar} 
+                        style={{ color: rating >= star ? "#fbbf24" : "inherit", cursor: "pointer" }}
+                        onClick={() => setRating(star)}
+                      />
+                    ))}
+                  </div>
+                  <textarea 
+                    value={review}
+                    onChange={(e) => setReview(e.target.value)}
+                    placeholder="Ceritakan pengalaman Anda dengan caregiver ini..."
+                    style={{ width: "100%", padding: "var(--space-3)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", minHeight: "80px", fontFamily: "inherit" }}
+                  />
+                  <button type="submit" className={styles.primaryAction} disabled={actionLoading || rating === 0}>
+                    {actionLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : "Kirim Ulasan"}
+                  </button>
+                </form>
+              </div>
+            )}
+            
+            {booking.rating && (
+              <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "var(--space-4)" }}>
+                <h4 style={{ marginBottom: "var(--space-2)", fontSize: "var(--font-size-md)" }}>Ulasan Anda</h4>
+                <div style={{ display: "flex", gap: "var(--space-1)", color: "#fbbf24", marginBottom: "var(--space-2)" }}>
+                  {[1, 2, 3, 4, 5].map(star => (
+                    <FontAwesomeIcon key={star} icon={faStar} style={{ opacity: booking.rating >= star ? 1 : 0.3 }} />
+                  ))}
+                </div>
+                <p style={{ fontStyle: "italic", fontSize: "var(--font-size-sm)", color: "var(--color-text-secondary)" }}>"{booking.review}"</p>
+              </div>
+            )}
+          </div>
+        )}
+
       </div>
+      
+      {showChat && (
+        <ChatModal bookingId={id} onClose={() => setShowChat(false)} />
+      )}
     </>
   );
 }
