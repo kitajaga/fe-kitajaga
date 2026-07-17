@@ -30,6 +30,19 @@ const TIPS = [
   { id: 3, icon: faLightbulb, title: "Komunikasi Aktif", desc: "Update keluarga secara berkala lewat chat" },
 ];
 
+const ACTIVE_BOOKING_STATUSES = [
+  "pending_matching",
+  "matched",
+  "in_progress",
+  "heading_to_patient",
+  "picked_up_patient",
+  "heading_to_facility",
+  "arrived_registration",
+  "waiting_in_queue",
+  "in_consultation",
+  "heading_back",
+];
+
 export default function CaregiverHomePage() {
   const router = useRouter();
   const [activeBanner, setActiveBanner] = useState(0);
@@ -67,20 +80,10 @@ export default function CaregiverHomePage() {
       }
       
       if (bookingsData && bookingsData.length > 0) {
-        // Find the first booking that is active
-        const active = bookingsData.find((b: any) => 
-          b.status === "pending_matching" ||
-          b.status === "matched" || 
-          b.status === "in_progress" || 
-          b.status === "heading_to_patient" ||
-          b.status === "picked_up_patient" ||
-          b.status === "heading_to_facility" ||
-          b.status === "arrived_registration" ||
-          b.status === "waiting_in_queue" ||
-          b.status === "in_consultation" ||
-          b.status === "heading_back"
-        );
-        setActiveBooking(active || bookingsData[0]);
+        const active = bookingsData.find((b: any) => ACTIVE_BOOKING_STATUSES.includes(b.status));
+        setActiveBooking(active ?? null);
+      } else {
+        setActiveBooking(null);
       }
     } catch (err) {
       console.error("Failed to load dashboard data", err);
