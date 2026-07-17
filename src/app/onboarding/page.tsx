@@ -123,6 +123,14 @@ export default function OnboardingPage() {
 
   return (
     <main id="onboarding-screen" className={styles.onboardingContainer}>
+      {/* Animated background blobs */}
+      <div className={styles.blob1} />
+      <div className={styles.blob2} />
+      <div className={styles.blob3} />
+
+      {/* Grid overlay */}
+      <div className={styles.grid} />
+
       {/* Carousel */}
       <div
         className={styles.carouselWrapper}
