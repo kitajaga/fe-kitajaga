@@ -86,16 +86,18 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
     const socket = io(socketUrl, { auth: { token } });
 
     socket.on("connect", () => {
-      socket.emit("join_booking", { bookingId: id });
+      socket.emit("join_booking", id);
     });
 
-    socket.on("booking_status_changed", (data: any) => {
-      console.log("booking_status_changed event received", data);
-      if (data.bookingId === id || data.id === id) {
-        // Refresh booking details when status changes
-        loadData();
-      }
-    });
+    const handleUpdate = (data: any) => {
+      console.log("WebSocket booking event received", data);
+      loadData();
+    };
+
+    socket.on("booking_status_updated", handleUpdate);
+    socket.on("booking_updated", handleUpdate);
+    socket.on("booking_status_changed", handleUpdate);
+    socket.on("progress_update", handleUpdate);
 
     return () => {
       socket.disconnect();

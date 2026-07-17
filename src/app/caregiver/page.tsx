@@ -15,7 +15,7 @@ import { faCircleCheck } from "@fortawesome/free-solid-svg-icons/faCircleCheck";
 import { faHeartPulse } from "@fortawesome/free-solid-svg-icons/faHeartPulse";
 import { faShieldHeart } from "@fortawesome/free-solid-svg-icons/faShieldHeart";
 import styles from "./home.module.css";
-import { fetchCaregiverProfile, fetchBookings, getUser, updateCaregiverStatus, updateCaregiverLocation, getToken } from "@/lib/api";
+import { fetchCaregiverProfile, fetchBookings, getUser, updateCaregiverStatus, updateCaregiverLocation, getToken, acceptBooking } from "@/lib/api";
 import { io } from "socket.io-client";
 
 const BANNERS = [
@@ -38,6 +38,8 @@ export default function CaregiverHomePage() {
   const [loading, setLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
+  const [incomingOffer, setIncomingOffer] = useState<any>(null);
+  const [acceptingOffer, setAcceptingOffer] = useState(false);
 
   // ── Role Guard ──
   useEffect(() => {
@@ -54,42 +56,44 @@ export default function CaregiverHomePage() {
   }, [router]);
 
   // ── Data Loading ──
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [profileData, bookingsData] = await Promise.all([
-          fetchCaregiverProfile().catch(() => null),
-          fetchBookings().catch(() => [])
-        ]);
-        
-        if (profileData) {
-          setProfile(profileData);
-        }
-        
-        if (bookingsData && bookingsData.length > 0) {
-          // Find the first booking that is either matched or in progress
-          const active = bookingsData.find((b: any) => 
-            b.status === "matched" || 
-            b.status === "in_progress" || 
-            b.status === "heading_to_patient" ||
-            b.status === "picked_up_patient" ||
-            b.status === "heading_to_facility" ||
-            b.status === "arrived_registration" ||
-            b.status === "waiting_in_queue" ||
-            b.status === "in_consultation" ||
-            b.status === "heading_back"
-          );
-          setActiveBooking(active || bookingsData[0]);
-        }
-      } catch (err) {
-        console.error("Failed to load dashboard data", err);
-      } finally {
-        setLoading(false);
+  const loadData = async () => {
+    try {
+      const [profileData, bookingsData] = await Promise.all([
+        fetchCaregiverProfile().catch(() => null),
+        fetchBookings().catch(() => [])
+      ]);
+      
+      if (profileData) {
+        setProfile(profileData);
       }
-    };
+      
+      if (bookingsData && bookingsData.length > 0) {
+        // Find the first booking that is active
+        const active = bookingsData.find((b: any) => 
+          b.status === "pending_matching" ||
+          b.status === "matched" || 
+          b.status === "in_progress" || 
+          b.status === "heading_to_patient" ||
+          b.status === "picked_up_patient" ||
+          b.status === "heading_to_facility" ||
+          b.status === "arrived_registration" ||
+          b.status === "waiting_in_queue" ||
+          b.status === "in_consultation" ||
+          b.status === "heading_back"
+        );
+        setActiveBooking(active || bookingsData[0]);
+      }
+    } catch (err) {
+      console.error("Failed to load dashboard data", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadData();
 
-    // ── WebSocket for New Booking Offers ──
+    // ── WebSocket for New Booking Offers & Status Updates ──
     const token = getToken();
     const socketUrl = process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") || "https://be-kitajaga-production.up.railway.app";
     const socket = io(socketUrl, { auth: { token } });
@@ -100,8 +104,12 @@ export default function CaregiverHomePage() {
 
     socket.on("new_booking_offer", (data: any) => {
       console.log("New booking offer:", data);
-      alert(`Ada pesanan baru dari ${data.patientName || "pasien"} di ${data.facilityName || "faskes"}! Silakan cek menu Jadwal.`);
-      // Refresh the booking list
+      setIncomingOffer(data);
+      loadData();
+    });
+
+    socket.on("booking_status_updated", (data: any) => {
+      console.log("Booking status updated:", data);
       loadData();
     });
 
@@ -109,6 +117,21 @@ export default function CaregiverHomePage() {
       socket.disconnect();
     };
   }, []);
+
+  const handleAcceptIncomingOffer = async () => {
+    if (!incomingOffer?.bookingId) return;
+    setAcceptingOffer(true);
+    try {
+      await acceptBooking(incomingOffer.bookingId);
+      alert("Pesanan berhasil diterima!");
+      setIncomingOffer(null);
+      loadData();
+    } catch (err: any) {
+      alert(err.message || "Gagal menerima pesanan.");
+    } finally {
+      setAcceptingOffer(false);
+    }
+  };
 
   // ── Online Status & Location ──
   useEffect(() => {
@@ -197,6 +220,58 @@ export default function CaregiverHomePage() {
             <span className={styles.notifBadge} />
           </button>
         </header>
+
+        {/* ── Incoming Booking Offer Notification ── */}
+        {incomingOffer && (
+          <section className={styles.section} style={{ marginBottom: "1rem" }}>
+            <div style={{
+              background: "linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)",
+              color: "white",
+              padding: "16px",
+              borderRadius: "16px",
+              boxShadow: "0 10px 20px rgba(37,99,235,0.2)"
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                <span style={{ fontWeight: 700, fontSize: "14px", textTransform: "uppercase", letterSpacing: "0.5px" }}>🔔 Pesanan Baru Masuk!</span>
+                <button onClick={() => setIncomingOffer(null)} style={{ background: "transparent", border: "none", color: "white", cursor: "pointer", fontSize: "16px" }}>✕</button>
+              </div>
+              <p style={{ margin: "4px 0", fontSize: "15px", fontWeight: 600 }}>Pasien: {incomingOffer.patientName || "Pasien"}</p>
+              <p style={{ margin: "4px 0 12px 0", fontSize: "13px", opacity: 0.9 }}>Tujuan: {incomingOffer.facilityName || "Fasilitas Kesehatan"}</p>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <button 
+                  onClick={handleAcceptIncomingOffer}
+                  disabled={acceptingOffer}
+                  style={{
+                    flex: 1,
+                    padding: "10px",
+                    background: "white",
+                    color: "#2563EB",
+                    border: "none",
+                    borderRadius: "8px",
+                    fontWeight: 700,
+                    cursor: "pointer"
+                  }}
+                >
+                  {acceptingOffer ? "Memproses..." : "Terima Pesanan"}
+                </button>
+                <button 
+                  onClick={() => router.push(`/caregiver/schedule/${incomingOffer.bookingId}`)}
+                  style={{
+                    padding: "10px 14px",
+                    background: "rgba(255,255,255,0.2)",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    fontWeight: 600,
+                    cursor: "pointer"
+                  }}
+                >
+                  Detail
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* ── Banner Carousel ── */}
         <section className={styles.bannerSection} aria-label="Banner promosi">

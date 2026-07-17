@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowLeft, faMapMarkerAlt, faUser, faNotesMedical, faPhoneAlt, faExclamationTriangle } from "@fortawesome/free-solid-svg-icons";
-import { getBookingDetail } from "@/lib/api";
+import { faArrowLeft, faMapMarkerAlt, faUser, faNotesMedical, faPhoneAlt, faExclamationTriangle, faCheckCircle, faSpinner } from "@fortawesome/free-solid-svg-icons";
+import { getBookingDetail, acceptBooking, getToken } from "@/lib/api";
+import { io } from "socket.io-client";
 import styles from "./detail.module.css";
 
 export default function DetailSchedulePage() {
@@ -14,41 +15,72 @@ export default function DetailSchedulePage() {
   
   const [booking, setBooking] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [accepting, setAccepting] = useState(false);
   const [error, setError] = useState("");
 
+  const fetchDetail = async () => {
+    try {
+      const data = await getBookingDetail(bookingId);
+      setBooking(data);
+    } catch (err: any) {
+      console.warn("Using mock data due to error:", err.message);
+      setBooking({
+        id: bookingId,
+        status: "matched",
+        bookingType: "scheduled",
+        scheduledAt: "2026-07-15T09:00:00Z",
+        facility: {
+          name: "RSCM Jakarta",
+          address: "Jl. Diponegoro No.71",
+        },
+        patient: {
+          name: "Budi Santoso",
+          address: "Jl. Menteng Raya No.10",
+          allergies: ["Debu", "Kacang"],
+          patientNote: "Mengidap diabetes, sering lupa minum obat sore.",
+          emergencyContact: { name: "Rina", phone: "081234567890" }
+        },
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    // We would fetch the real data here, but for now we'll mock it if the API isn't ready
-    // Try to fetch, if it fails, use mock data
-    const fetchDetail = async () => {
-      try {
-        const data = await getBookingDetail(bookingId);
-        setBooking(data);
-      } catch (err: any) {
-        console.warn("Using mock data due to error:", err.message);
-        setBooking({
-          id: bookingId,
-          status: "matched",
-          bookingType: "scheduled",
-          scheduledAt: "2026-07-15T09:00:00Z",
-          facility: {
-            name: "RSCM Jakarta",
-            address: "Jl. Diponegoro No.71",
-          },
-          patient: {
-            name: "Budi Santoso",
-            address: "Jl. Menteng Raya No.10",
-            allergies: ["Debu", "Kacang"],
-            patientNote: "Mengidap diabetes, sering lupa minum obat sore.",
-            emergencyContact: { name: "Rina", phone: "081234567890" }
-          },
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     fetchDetail();
+
+    const token = getToken();
+    const socketUrl = process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") || "https://be-kitajaga-production.up.railway.app";
+    const socket = io(socketUrl, { auth: { token } });
+
+    socket.on("connect", () => {
+      socket.emit("join_booking", bookingId);
+    });
+
+    const handleUpdate = () => {
+      fetchDetail();
+    };
+
+    socket.on("booking_status_updated", handleUpdate);
+    socket.on("booking_updated", handleUpdate);
+
+    return () => {
+      socket.disconnect();
+    };
   }, [bookingId]);
+
+  const handleAccept = async () => {
+    setAccepting(true);
+    try {
+      await acceptBooking(bookingId);
+      alert("Pesanan berhasil diterima!");
+      fetchDetail();
+    } catch (err: any) {
+      alert(err.message || "Gagal menerima pesanan.");
+    } finally {
+      setAccepting(false);
+    }
+  };
 
   const handleStart = () => {
     // Start CG event -> go to tracking & chat
@@ -167,9 +199,15 @@ export default function DetailSchedulePage() {
 
       {/* Footer Action */}
       <footer className={styles.footer}>
-        <button className={styles.startButton} onClick={handleStart}>
-          Start
-        </button>
+        {booking.status === "pending_matching" ? (
+          <button className={styles.startButton} onClick={handleAccept} disabled={accepting}>
+            {accepting ? <FontAwesomeIcon icon={faSpinner} spin /> : "Terima Pesanan"}
+          </button>
+        ) : (
+          <button className={styles.startButton} onClick={handleStart}>
+            Mulai Layanan
+          </button>
+        )}
       </footer>
     </div>
   );
