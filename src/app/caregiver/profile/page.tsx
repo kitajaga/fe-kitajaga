@@ -23,10 +23,10 @@ interface Caregiver {
   name: string;
   email: string;
   phone: string;
-  rating: number;
-  totalReviews: number;
-  photoUrl: string;
-  online: boolean;
+  averageRating: number;
+  totalCompletedBookings?: number;
+  photoUrl?: string;
+  availabilityStatus?: string;
 }
 
 interface Booking {
@@ -50,9 +50,12 @@ export default function CaregiverProfilePage() {
         
         if (profileData) {
           setProfile(profileData);
+          if (profileData.totalCompletedBookings != null) {
+            setCompletedCount(profileData.totalCompletedBookings);
+          }
         }
         
-        if (bookingsData) {
+        if (bookingsData && profileData?.totalCompletedBookings == null) {
           setCompletedCount(bookingsData.filter((b: Booking) => b.status === "completed" || b.status === "reported").length);
         }
       } catch (err) {
@@ -91,7 +94,7 @@ export default function CaregiverProfilePage() {
           <div className={styles.statsRow}>
             <div className={styles.statItem}>
               <FontAwesomeIcon icon={faStar} className={styles.starIcon} />
-              <span className={styles.statValue}>4.9</span>
+              <span className={styles.statValue}>{loading ? "-" : (profile?.averageRating?.toFixed(1) ?? "-")}</span>
               <span className={styles.statLabel}>Rating</span>
             </div>
             <div className={styles.statDivider} />

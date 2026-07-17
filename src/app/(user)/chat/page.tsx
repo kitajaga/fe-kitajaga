@@ -17,7 +17,7 @@ export default function UserChatPage() {
       try {
         const bookings = await fetchBookings();
         const activeBookings = bookings.filter((b: any) => 
-          b.status !== "pending" && b.status !== "cancelled" && b.status !== "completed" && b.status !== "reported"
+          !["pending_matching", "rescheduling", "cancelled", "completed", "reported", "payment_failed"].includes(b.status)
         );
         
         const formattedChats = activeBookings.map((b: any) => ({

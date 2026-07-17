@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUserCircle } from "@fortawesome/free-solid-svg-icons/faUserCircle";
@@ -13,7 +14,8 @@ import { faCircleCheck } from "@fortawesome/free-solid-svg-icons/faCircleCheck";
 import { faUserInjured } from "@fortawesome/free-solid-svg-icons/faUserInjured";
 import { faCalendarDays } from "@fortawesome/free-solid-svg-icons/faCalendarDays";
 import { useApi } from "@/hooks/useApi";
-import { fetchProfile, fetchBookings, fetchPatients } from "@/lib/api";
+import { fetchProfile, fetchBookings, fetchPatients, getToken, getSocketBaseUrl } from "@/lib/api";
+import { io } from "socket.io-client";
 import { BOOKING_STATUS_LABELS } from "@/lib/constants";
 import styles from "./dashboard.module.css";
 
@@ -51,8 +53,24 @@ export default function UserDashboardPage() {
   const router = useRouter();
 
   const { data: user, loading: loadingUser } = useApi(fetchProfile);
-  const { data: bookings, loading: loadingBookings } = useApi(fetchBookings);
+  const { data: bookings, loading: loadingBookings, refetch: refetchBookings } = useApi(fetchBookings);
   const { data: patients, loading: loadingPatients } = useApi(fetchPatients);
+
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+
+    const socket = io(getSocketBaseUrl(), { auth: { token } });
+    const handleUpdate = () => { void refetchBookings(); };
+
+    socket.on("booking_status_updated", handleUpdate);
+    socket.on("booking_updated", handleUpdate);
+    socket.on("booking_status_changed", handleUpdate);
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [refetchBookings]);
 
   const isLoading = loadingUser || loadingBookings || loadingPatients;
 
