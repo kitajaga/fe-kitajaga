@@ -17,7 +17,7 @@ import { faRotateRight } from "@fortawesome/free-solid-svg-icons/faRotateRight";
 import { faFileLines } from "@fortawesome/free-solid-svg-icons/faFileLines";
 import { faUserInjured } from "@fortawesome/free-solid-svg-icons/faUserInjured";
 import ChatModal from "@/components/ChatModal";
-import { getBookingDetail, getBookingProgress, fetchPatientById, rateBooking } from "@/lib/api";
+import { getBookingDetail, getBookingProgress, fetchPatientById, rateBooking, chargePayment, mockSettlePayment } from "@/lib/api";
 import { BOOKING_STATUS_LABELS, PROGRESS_LABELS } from "@/lib/constants";
 import styles from "../bookings.module.css";
 
@@ -35,6 +35,7 @@ const PROGRESS_ORDER = [
 export default function BookingDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   const [booking, setBooking] = useState<any>(null);
   const [patient, setPatient] = useState<any>(null);
@@ -98,6 +99,35 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
       alert(err.message || "Gagal mengirim rating");
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handlePay = async () => {
+    setIsProcessingPayment(true);
+    try {
+      const res = await chargePayment(id);
+      if (res && res.redirectUrl) {
+        window.open(res.redirectUrl, "_blank");
+      } else {
+        alert("Gagal mendapatkan link pembayaran.");
+      }
+    } catch (err: any) {
+      alert("Error memproses pembayaran: " + err.message);
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+
+  const handleMockPay = async () => {
+    setIsProcessingPayment(true);
+    try {
+      await mockSettlePayment(id);
+      alert("Simulasi pembayaran berhasil diselesaikan!");
+      window.location.reload();
+    } catch (err: any) {
+      alert("Error memproses mock pembayaran: " + err.message);
+    } finally {
+      setIsProcessingPayment(false);
     }
   };
 
@@ -231,10 +261,10 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
             className={styles.primaryAction} 
             style={{ padding: "16px" }} 
             id="booking-pay-btn"
-            onClick={() => alert("Fitur pembayaran (Midtrans) sedang dalam pengembangan.")}
+            onClick={handlePay}
+            disabled={isProcessingPayment}
           >
-            <FontAwesomeIcon icon={faCreditCard} /> 
-            {` Bayar Rp${(booking.payment?.amount || 150000).toLocaleString("id-ID")}`}
+            <FontAwesomeIcon icon={faCreditCard} /> {isProcessingPayment ? "Memproses..." : `Bayar Rp${booking.payment?.amount?.toLocaleString("id-ID") || " -"}`}
           </button>
         )}
 
@@ -322,8 +352,8 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
           </div>
         )}
 
-        {/* ── Rating Form (completed, not yet rated) ── */}
-        {booking.status === "completed" && (
+        {/* ── Rating Form (completed / reported, not yet rated) ── */}
+        {(booking.status === "completed" || booking.status === "reported") && !booking.rating && (
           <div className={styles.ratingForm}>
             <h3 className={styles.infoCardTitle}>Beri Rating</h3>
             <div className={styles.starsRow}>
@@ -357,90 +387,69 @@ export default function BookingDetailPage({ params }: { params: Promise<{ id: st
         )}
 
         {/* ── Payment Info ── */}
-        {booking.payment && (
-          <div className={styles.infoCard}>
-            <h3 className={styles.infoCardTitle}>
-              <span className={styles.infoCardTitleIcon}><FontAwesomeIcon icon={faCreditCard} /></span>
-              Pembayaran
-            </h3>
-            <div className={styles.infoRow}>
-              <span className={styles.infoLabel}>Total</span>
-              <span className={styles.infoValue}>Rp{booking.payment.amount?.toLocaleString("id-ID")}</span>
-            </div>
-            <div className={styles.infoRow}>
-              <span className={styles.infoLabel}>Status</span>
-              <span className={styles.infoValue} style={{ textTransform: "capitalize" }}>{booking.payment.status}</span>
-            </div>
-          </div>
-        )}
-
-        {/* ── Report & Rating (reported/completed) ── */}
-        {(booking.status === "reported" || booking.status === "completed") && (
-          <div className={styles.infoCard}>
-            <h3 className={styles.infoCardTitle}>
-              <span className={styles.infoCardTitleIcon}><FontAwesomeIcon icon={faFileLines} /></span>
-              Laporan Caregiver
-            </h3>
-            {report ? (
-              <div style={{ marginBottom: "var(--space-4)" }}>
-                <div style={{ marginBottom: "var(--space-2)" }}>
-                  <span style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-secondary)" }}>Ringkasan Kondisi</span>
-                  <p style={{ fontWeight: 600 }}>{report.conditionSummary}</p>
-                </div>
-                <div>
-                  <span style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-secondary)" }}>Catatan Tambahan</span>
-                  <p style={{ background: "rgba(0,0,0,0.03)", padding: "var(--space-2)", borderRadius: "var(--radius-md)", fontSize: "var(--font-size-sm)" }}>
-                    {report.notes}
-                  </p>
-                </div>
+        <div className={styles.infoCard}>
+          <h3 className={styles.infoCardTitle}>
+            <span className={styles.infoCardTitleIcon}><FontAwesomeIcon icon={faCreditCard} /></span>
+            Pembayaran
+          </h3>
+          {booking.payment ? (
+            <>
+              <div className={styles.infoRow}>
+                <span className={styles.infoLabel}>Total</span>
+                <span className={styles.infoValue}>Rp{booking.payment.amount?.toLocaleString("id-ID") || " -"}</span>
               </div>
-            ) : (
-              <p style={{ fontSize: "var(--font-size-sm)", color: "var(--color-text-secondary)", marginBottom: "var(--space-4)" }}>
-                Laporan belum tersedia atau gagal dimuat.
-              </p>
-            )}
-
-            {booking.status === "reported" && (
-              <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "var(--space-4)" }}>
-                <h4 style={{ marginBottom: "var(--space-2)", fontSize: "var(--font-size-md)" }}>Beri Penilaian</h4>
-                <form onSubmit={handleSubmitRating} style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-                  <div style={{ display: "flex", gap: "var(--space-2)", fontSize: "24px", color: "var(--color-text-secondary)" }}>
-                    {[1, 2, 3, 4, 5].map(star => (
-                      <FontAwesomeIcon 
-                        key={star} 
-                        icon={faStar} 
-                        style={{ color: rating >= star ? "#fbbf24" : "inherit", cursor: "pointer" }}
-                        onClick={() => setRating(star)}
-                      />
-                    ))}
-                  </div>
-                  <textarea 
-                    value={review}
-                    onChange={(e) => setReview(e.target.value)}
-                    placeholder="Ceritakan pengalaman Anda dengan caregiver ini..."
-                    style={{ width: "100%", padding: "var(--space-3)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", minHeight: "80px", fontFamily: "inherit" }}
-                  />
-                  <button type="submit" className={styles.primaryAction} disabled={actionLoading || rating === 0}>
-                    {actionLoading ? <FontAwesomeIcon icon={faSpinner} spin /> : "Kirim Ulasan"}
+              <div className={styles.infoRow}>
+                <span className={styles.infoLabel}>Status</span>
+                <span className={styles.infoValue} style={{ textTransform: "capitalize" }}>{booking.payment.status}</span>
+              </div>
+              
+              {booking.payment.status === "pending" && (
+                <div style={{ display: "flex", gap: "10px", marginTop: "1rem", flexDirection: "column" }}>
+                  <button 
+                    onClick={handlePay} 
+                    disabled={isProcessingPayment}
+                    style={{ padding: "12px", background: "var(--color-primary)", color: "white", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: 600 }}
+                  >
+                    {isProcessingPayment ? "Memproses..." : "Bayar via Midtrans"}
                   </button>
-                </form>
-              </div>
-            )}
-            
-            {booking.rating && (
-              <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "var(--space-4)" }}>
-                <h4 style={{ marginBottom: "var(--space-2)", fontSize: "var(--font-size-md)" }}>Ulasan Anda</h4>
-                <div style={{ display: "flex", gap: "var(--space-1)", color: "#fbbf24", marginBottom: "var(--space-2)" }}>
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <FontAwesomeIcon key={star} icon={faStar} style={{ opacity: booking.rating >= star ? 1 : 0.3 }} />
-                  ))}
+                  <button 
+                    onClick={handleMockPay} 
+                    disabled={isProcessingPayment}
+                    style={{ padding: "12px", background: "transparent", color: "var(--color-primary)", border: "1px dashed var(--color-primary)", borderRadius: "8px", cursor: "pointer", fontWeight: 600 }}
+                  >
+                    Simulasi Selesai (Mock)
+                  </button>
                 </div>
-                <p style={{ fontStyle: "italic", fontSize: "var(--font-size-sm)", color: "var(--color-text-secondary)" }}>"{booking.review}"</p>
-              </div>
-            )}
+              )}
+            </>
+          ) : (
+            <div style={{ textAlign: "center", padding: "1rem 0" }}>
+              <p style={{ color: "var(--text-secondary)", marginBottom: "1rem", fontSize: "0.9rem" }}>
+                Tagihan pembayaran belum tersedia atau masih dalam proses perhitungan.
+              </p>
+              <button 
+                onClick={handlePay} 
+                disabled={isProcessingPayment}
+                style={{ padding: "12px", background: "var(--color-primary)", color: "white", borderRadius: "8px", border: "none", cursor: "pointer", fontWeight: 600, width: "100%" }}
+              >
+                {isProcessingPayment ? "Memproses..." : "Buat Tagihan & Bayar"}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* ── Submitted Rating View ── */}
+        {booking.rating && (
+          <div className={styles.infoCard}>
+            <h3 className={styles.infoCardTitle}>Ulasan Anda</h3>
+            <div style={{ display: "flex", gap: "4px", color: "#fbbf24", marginBottom: "8px" }}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <FontAwesomeIcon key={star} icon={faStar} style={{ opacity: booking.rating >= star ? 1 : 0.3 }} />
+              ))}
+            </div>
+            <p style={{ fontStyle: "italic", fontSize: "14px", color: "var(--text-secondary)" }}>&quot;{booking.review}&quot;</p>
           </div>
         )}
-
       </div>
       
       {showChat && (

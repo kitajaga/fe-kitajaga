@@ -293,6 +293,26 @@ export async function updateCaregiverLocation(latitude: number, longitude: numbe
   });
 }
 
+// ── Payments ──
+
+export async function chargePayment(bookingId: string): Promise<any> {
+  return await apiFetch<any>("/payments/charge", {
+    method: "POST",
+    body: JSON.stringify({ bookingId }),
+  });
+}
+
+export async function mockSettlePayment(bookingId: string): Promise<any> {
+  return await apiFetch<any>("/payments/mock-settle", {
+    method: "POST",
+    body: JSON.stringify({ bookingId }),
+  });
+}
+
+export async function fetchPaymentStatus(bookingId: string): Promise<any> {
+  return await apiFetch<any>(`/payments/${bookingId}/status`);
+}
+
 // ── Guidebook API ──
 
 export interface GuidebookData {
@@ -372,13 +392,6 @@ export async function updateCaregiverProfile(data: { name?: string; phone?: stri
 
 export async function requestPayment(bookingId: string): Promise<any> {
   return await apiFetch<any>("/payments/charge", {
-    method: "POST",
-    body: JSON.stringify({ bookingId }),
-  });
-}
-
-export async function mockSettlePayment(bookingId: string): Promise<any> {
-  return await apiFetch<any>("/payments/mock-settle", {
     method: "POST",
     body: JSON.stringify({ bookingId }),
   });
