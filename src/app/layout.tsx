@@ -1,12 +1,16 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import "@fortawesome/fontawesome-svg-core/styles.css";
+import { config } from "@fortawesome/fontawesome-svg-core";
 import "./globals.css";
 import AppShell from "@/components/AppShell";
+
+config.autoAddCss = false;
 
 const plusJakarta = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta",
   subsets: ["latin"],
-  weight: ["200", "300", "400", "500", "600", "700", "800"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -14,6 +18,10 @@ export const metadata: Metadata = {
   description:
     "Marketplace caregiver berbasis lokasi untuk pendampingan lansia. Temukan caregiver terpercaya dengan cepat, aman, dan transparan.",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icons/kitajaga-logo-192.png",
+    apple: "/icons/kitajaga-logo-192.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -24,8 +32,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   themeColor: "#10367D",
 };
 
@@ -42,3 +48,4 @@ export default function RootLayout({
     </html>
   );
 }
+

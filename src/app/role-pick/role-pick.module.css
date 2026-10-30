@@ -13,12 +13,14 @@
 /* ── Back Button ── */
 .backBtn {
   align-self: flex-start;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: var(--radius-lg);
   background: var(--color-white);
   border: 1px solid var(--color-gray-200);
-  color: var(--color-gray-600);
+  color: var(--color-gray-700);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -27,6 +29,7 @@
   transition: all 0.15s ease;
   box-shadow: var(--shadow-sm);
   flex-shrink: 0;
+  text-decoration: none;
 }
 
 .backBtn:hover {
@@ -34,18 +37,24 @@
   color: var(--color-gray-900);
 }
 
+.backBtn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 /* ── Brand ── */
 .brand {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  margin-top: var(--space-6);
-  opacity: 0;
-  animation: fadeInDown 0.45s ease forwards 0.05s;
+  margin-top: var(--space-4);
+  animation: fadeInDown 0.3s ease-out;
 }
 
 .logo {
   border-radius: var(--radius-xl);
+  width: 52px;
+  height: 52px;
 }
 
 .brandName {
@@ -62,13 +71,13 @@
   align-items: center;
   text-align: center;
   gap: var(--space-2);
-  margin-top: var(--space-6);
-  margin-bottom: var(--space-6);
-  opacity: 0;
-  animation: fadeInDown 0.45s ease forwards 0.15s;
+  margin-top: var(--space-5);
+  margin-bottom: var(--space-5);
+  animation: fadeInDown 0.3s ease-out;
 }
 
 .title {
+  margin: 0;
   font-size: 1.75rem;
   font-weight: 700;
   color: var(--color-gray-900);
@@ -76,8 +85,9 @@
 }
 
 .subtitle {
+  margin: 0;
   font-size: 0.9rem;
-  color: var(--color-gray-500);
+  color: var(--color-gray-600);
   max-width: 280px;
   line-height: 1.5;
 }
@@ -101,16 +111,8 @@
   flex-direction: column;
   gap: var(--space-4);
   box-shadow: var(--shadow-sm);
-  opacity: 0;
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
-}
-
-.roleCard:nth-child(1) {
-  animation: fadeInUp 0.45s ease forwards 0.25s;
-}
-
-.roleCard:nth-child(2) {
-  animation: fadeInUp 0.45s ease forwards 0.38s;
+  animation: fadeInUp 0.3s ease-out;
 }
 
 .roleCard:hover {
@@ -143,7 +145,7 @@
 
 .cardIconCaregiver {
   background: linear-gradient(135deg, #F0FDF4, #DCFCE7);
-  color: #16A34A;
+  color: #15803D;
 }
 
 .cardInfo {
@@ -153,14 +155,16 @@
 }
 
 .cardTitle {
+  margin: 0;
   font-size: 1.05rem;
   font-weight: 700;
   color: var(--color-gray-900);
 }
 
 .cardDesc {
+  margin: 0;
   font-size: 0.8rem;
-  color: var(--color-gray-500);
+  color: var(--color-gray-600);
   line-height: 1.4;
 }
 
@@ -171,19 +175,27 @@
   gap: var(--space-3);
 }
 
-/* ── Action Buttons ── */
+/* ── Action Buttons (Links) ── */
 .actionBtn {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
+  min-height: 44px;
   border-radius: var(--radius-xl);
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
   border: 1.5px solid transparent;
+  text-decoration: none;
+  user-select: none;
+}
+
+.actionBtn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 /* Primary Blue (User Masuk) */
@@ -197,7 +209,9 @@
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(16, 54, 125, 0.3);
 }
-.actionBtnPrimary:active { transform: scale(0.97); }
+.actionBtnPrimary:active {
+  transform: scale(0.97);
+}
 
 /* Outline Blue (User Daftar) */
 .actionBtnOutline {
@@ -208,45 +222,59 @@
 .actionBtnOutline:hover {
   background: rgba(16, 54, 125, 0.06);
 }
+.actionBtnOutline:active {
+  transform: scale(0.97);
+}
 
 /* Green (Caregiver Masuk) */
 .actionBtnGreen {
-  background: #16A34A;
+  background: #15803D;
   color: var(--color-white);
-  border-color: #16A34A;
+  border-color: #15803D;
 }
 .actionBtnGreen:hover {
-  background: #15803D;
+  background: #166534;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+  box-shadow: 0 4px 12px rgba(21, 128, 61, 0.3);
 }
-.actionBtnGreen:active { transform: scale(0.97); }
+.actionBtnGreen:active {
+  transform: scale(0.97);
+}
 
 /* Outline Green (Caregiver Daftar) */
 .actionBtnOutlineGreen {
   background: transparent;
-  color: #16A34A;
-  border-color: #16A34A;
+  color: #15803D;
+  border-color: #15803D;
 }
 .actionBtnOutlineGreen:hover {
-  background: rgba(22, 163, 74, 0.06);
+  background: rgba(21, 128, 61, 0.08);
+}
+.actionBtnOutlineGreen:active {
+  transform: scale(0.97);
 }
 
 /* ── Footer ── */
 .footer {
-  margin-top: var(--space-8);
+  margin-top: var(--space-6);
   font-size: 0.75rem;
-  color: var(--color-gray-400);
+  color: var(--color-gray-600);
   text-align: center;
   line-height: 1.5;
-  opacity: 0;
-  animation: fadeIn 0.45s ease forwards 0.55s;
+  animation: fadeIn 0.3s ease-out;
 }
 
 .footerLink {
   color: var(--color-primary);
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.footerLink:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 /* ── Animations ── */
@@ -256,13 +284,27 @@
 }
 
 @keyframes fadeInDown {
-  from { opacity: 0; transform: translateY(-16px); }
+  from { opacity: 0; transform: translateY(-12px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Reduced Motion Accessibility ── */
+@media (prefers-reduced-motion: reduce) {
+  .brand,
+  .heading,
+  .roleCard,
+  .footer,
+  .actionBtn,
+  .backBtn {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
 }
 
 /* ── Responsive ── */

@@ -1,6 +1,4 @@
-"use client";
-
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUsers } from "@fortawesome/free-solid-svg-icons/faUsers";
@@ -9,26 +7,29 @@ import { faArrowRight } from "@fortawesome/free-solid-svg-icons/faArrowRight";
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons/faArrowLeft";
 import styles from "./role-pick.module.css";
 
-export default function RolePickPage() {
-  const router = useRouter();
+export const metadata = {
+  title: "Pilih Peran — Kitajaga",
+  description: "Pilih peran Anda sebagai Keluarga Pasien atau Caregiver di Kitajaga.",
+};
 
+export default function RolePickPage() {
   return (
     <main id="role-pick-screen" className={styles.page}>
       {/* Back button */}
-      <button
+      <Link
+        href="/onboarding"
         className={styles.backBtn}
-        onClick={() => router.push("/onboarding")}
-        aria-label="Kembali ke onboarding"
+        aria-label="Kembali ke halaman onboarding"
         id="role-pick-back-btn"
       >
-        <FontAwesomeIcon icon={faArrowLeft} />
-      </button>
+        <FontAwesomeIcon icon={faArrowLeft} aria-hidden="true" />
+      </Link>
 
       {/* Brand */}
       <div className={styles.brand}>
         <Image
           src="/icons/kitajaga-logo.png"
-          alt="Kitajaga"
+          alt="Logo Kitajaga"
           width={52}
           height={52}
           className={styles.logo}
@@ -48,71 +49,92 @@ export default function RolePickPage() {
       {/* Role Cards */}
       <div className={styles.cards}>
         {/* ── User / Keluarga Pasien ── */}
-        <div className={styles.roleCard} id="role-card-user">
+        <section
+          className={styles.roleCard}
+          id="role-card-user"
+          aria-labelledby="role-title-user"
+        >
           <div className={styles.cardHeader}>
-            <div className={`${styles.cardIconWrap} ${styles.cardIconUser}`}>
+            <div className={`${styles.cardIconWrap} ${styles.cardIconUser}`} aria-hidden="true">
               <FontAwesomeIcon icon={faUsers} />
             </div>
             <div className={styles.cardInfo}>
-              <span className={styles.cardTitle}>Keluarga Pasien</span>
-              <span className={styles.cardDesc}>
+              <h2 className={styles.cardTitle} id="role-title-user">
+                Keluarga Pasien
+              </h2>
+              <p className={styles.cardDesc}>
                 Pesan caregiver untuk mendampingi orang tua Anda
-              </span>
+              </p>
             </div>
           </div>
           <div className={styles.cardActions}>
-            <button
+            <Link
+              href="/auth/user/login"
               className={`${styles.actionBtn} ${styles.actionBtnPrimary}`}
-              onClick={() => router.push("/auth/user/login")}
               id="role-pick-user-login"
+              aria-label="Masuk sebagai Keluarga Pasien"
             >
-              Masuk <FontAwesomeIcon icon={faArrowRight} />
-            </button>
-            <button
+              <span>Masuk</span>
+              <FontAwesomeIcon icon={faArrowRight} aria-hidden="true" />
+            </Link>
+            <Link
+              href="/auth/user/register"
               className={`${styles.actionBtn} ${styles.actionBtnOutline}`}
-              onClick={() => router.push("/auth/user/register")}
               id="role-pick-user-register"
+              aria-label="Daftar sebagai Keluarga Pasien"
             >
               Daftar
-            </button>
+            </Link>
           </div>
-        </div>
+        </section>
 
         {/* ── Caregiver ── */}
-        <div className={styles.roleCard} id="role-card-caregiver">
+        <section
+          className={styles.roleCard}
+          id="role-card-caregiver"
+          aria-labelledby="role-title-caregiver"
+        >
           <div className={styles.cardHeader}>
-            <div className={`${styles.cardIconWrap} ${styles.cardIconCaregiver}`}>
+            <div className={`${styles.cardIconWrap} ${styles.cardIconCaregiver}`} aria-hidden="true">
               <FontAwesomeIcon icon={faUserNurse} />
             </div>
             <div className={styles.cardInfo}>
-              <span className={styles.cardTitle}>Caregiver</span>
-              <span className={styles.cardDesc}>
+              <h2 className={styles.cardTitle} id="role-title-caregiver">
+                Caregiver
+              </h2>
+              <p className={styles.cardDesc}>
                 Bergabung dan mulai terima pesanan pendampingan
-              </span>
+              </p>
             </div>
           </div>
           <div className={styles.cardActions}>
-            <button
+            <Link
+              href="/auth/caregiver/login"
               className={`${styles.actionBtn} ${styles.actionBtnGreen}`}
-              onClick={() => router.push("/auth/caregiver/login")}
               id="role-pick-caregiver-login"
+              aria-label="Masuk sebagai Caregiver"
             >
-              Masuk <FontAwesomeIcon icon={faArrowRight} />
-            </button>
-            <button
+              <span>Masuk</span>
+              <FontAwesomeIcon icon={faArrowRight} aria-hidden="true" />
+            </Link>
+            <Link
+              href="/auth/caregiver/register"
               className={`${styles.actionBtn} ${styles.actionBtnOutlineGreen}`}
-              onClick={() => router.push("/auth/caregiver/register")}
               id="role-pick-caregiver-register"
+              aria-label="Daftar sebagai Caregiver"
             >
               Daftar
-            </button>
+            </Link>
           </div>
-        </div>
+        </section>
       </div>
 
       <p className={styles.footer}>
         Dengan melanjutkan, Anda menyetujui{" "}
-        <span className={styles.footerLink}>Syarat &amp; Ketentuan</span> Kitajaga
+        <Link href="/terms" className={styles.footerLink}>
+          Syarat &amp; Ketentuan
+        </Link>{" "}
+        Kitajaga
       </p>
     </main>
   );
